@@ -601,6 +601,7 @@ window.cloudCamFrame=function(m){if(!m||!m.length)return;const u=URL.createObjec
  img.onload=()=>{if(camUrl&&camUrl!==u)URL.revokeObjectURL(camUrl);camUrl=u};img.className='';img.src=u;camAt=Date.now();
  $('camoff').style.display='none';$('cambadge').textContent='Live via cloud · '+new Date().toLocaleTimeString()};
 camRender=function(d){const fresh=Date.now()-camAt<12000;$('camoff').style.display=fresh?'none':'flex';
+ $('camscore').textContent=d.cam_now>=0?Math.round(d.cam_now):'-';$('camstat').textContent=d.dev.cam_motion?(d.cam_light?'Light changed, score paused':'Motion score feeds the AI'):d.dev.cam_seen?'Connected, no score yet':'Offline';
  if(!fresh)$('camofftxt').textContent=!d.dev.cam_seen?'Camera not heard by SlopeSense':'Waiting for the first photo…'};
 setCam=function(m){if(m!=='live')toast('Through the cloud only the live photo is available');document.querySelectorAll('#camseg button').forEach(b=>b.className=b.dataset.m=='live'?'on':'')};
 </script></body></html>
