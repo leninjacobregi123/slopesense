@@ -30,6 +30,6 @@ and the page opens straight onto it: no accounts. Anyone with the page can watch
 ## Notes
 - Data: readings every 1.5 s while someone has the page open, every 30 s otherwise (~2.5 KB each).
 - Alerts (state changes) are sent at once.
-- Camera pictures stay on the local network; the motion score does come through.
+- Camera: the board relays one photo (320x240, ~10 KB) every ~2.5 s while someone has the page open (topic `/cam`).
 - Wi-Fi changes can only be made from the local dashboard.
 - Topics: `slopesense/<board id>/api|notes|meta|status` (retained), `/cmd`, `/hello`.

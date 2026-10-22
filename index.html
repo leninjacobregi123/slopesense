@@ -178,7 +178,7 @@ footer{grid-column:1/-1;text-align:center;font-size:12px;color:var(--mute);paddi
 <script>
 // ---- cloud layer: answers the dashboard's /api, /notes, /meta and /cmd requests from MQTT ----
 (function(){
-const KEY='slopesense_cloud',PUBLIC={host:'wss://public.cloud.shiftr.io',user:'public',pass:'public',id:'beacd8',pub:1};
+const KEY='slopesense_cloud_v2',PUBLIC={host:'wss://public.cloud.shiftr.io',user:'public',pass:'public',id:'beacd8',pub:1};
 let cfg=null,client=null,id=null,api=null,apiAt=0,notes=null,meta=null,online=null,waiters=[],helloT=null;
 function load(){try{const h=location.hash.match(/#c=([^&]+)/);if(h){const c=JSON.parse(decodeURIComponent(escape(atob(h[1]))));localStorage.setItem(KEY,JSON.stringify(c));history.replaceState(null,'',location.pathname+location.search)}}catch(e){}
  try{cfg=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){cfg=null}if(!cfg||!cfg.host)cfg=PUBLIC}
@@ -196,7 +196,7 @@ function connect(){
  client.on('error',e=>{setErr(/auth|Not authorized|bad user/i.test(e.message)?'Login refused: check the Cluster URL is your own (Overview tab in HiveMQ) and the username and password match Access Management':'Cannot reach the broker: '+e.message)});
  client.on('message',(t,m)=>{const p=t.split('/');if(p[0]!=='slopesense'||p.length<3)return;
   if(!id){id=p[1];client.unsubscribe('slopesense/+/#');client.subscribe(base()+'#');hello()}
-  if(p[1]!==id)return;const k=p[2],s=m.toString();
+  if(p[1]!==id)return;const k=p[2];if(k==='cam'){window.cloudCamFrame&&cloudCamFrame(m);return}const s=m.toString();
   try{if(k==='api'){api=JSON.parse(s);apiAt=Date.now()}else if(k==='notes')notes=JSON.parse(s);else if(k==='meta')meta=JSON.parse(s);else if(k==='status')online=s==='online'}catch(e){}
   wake()});}
 function hello(){if(client&&client.connected&&id)client.publish(base()+'hello','1')}
@@ -593,8 +593,14 @@ setInterval(()=>{if($('npanel').className)nRender()},30000);  // keep "x min ago
 palUI();
 addEventListener('resize',()=>{if(last)render(last)});init();
 </script><script>
-// camera pictures only travel on the local network; the motion score still arrives through the cloud
+// camera: the board relays one photo every ~2.5 s through the cloud while this page is open
+let camAt=0,camUrl=null;
 camTick=function(){};
 if(cloudIsPublic()){cmd=function(){toast('View only: use the local dashboard for controls')};usToggle=function(){cmd()}}
-camRender=function(d){$('camoff').style.display='flex';$('camofftxt').textContent='Camera picture: local network only. Motion score: '+(d.dev.cam_motion?d.raw.cam.toFixed(1)+' / 100':'not arriving')};
+window.cloudCamFrame=function(m){if(!m||!m.length)return;const u=URL.createObjectURL(new Blob([m],{type:'image/jpeg'}));const img=$('camimg');
+ img.onload=()=>{if(camUrl&&camUrl!==u)URL.revokeObjectURL(camUrl);camUrl=u};img.className='';img.src=u;camAt=Date.now();
+ $('camoff').style.display='none';$('cambadge').textContent='Live via cloud · '+new Date().toLocaleTimeString()};
+camRender=function(d){const fresh=Date.now()-camAt<12000;$('camoff').style.display=fresh?'none':'flex';
+ if(!fresh)$('camofftxt').textContent=!d.dev.cam_seen?'Camera not heard by SlopeSense':'Waiting for the first photo…'};
+setCam=function(m){if(m!=='live')toast('Through the cloud only the live photo is available');document.querySelectorAll('#camseg button').forEach(b=>b.className=b.dataset.m=='live'?'on':'')};
 </script></body></html>
