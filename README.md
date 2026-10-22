@@ -1,6 +1,9 @@
 # SlopeSense cloud dashboard
 
 The same dashboard as the board's own page, but it gets its data through HiveMQ Cloud,
+**Live page:** https://leninjacobregi.me/slopesense/  (repo: github.com/leninjacobregi123/slopesense)
+To update: `python3 tools/make_cloud_page.py` then commit and push in this folder.
+
 so it works from any phone or laptop on any internet.
 
     ESP32 (on any Wi-Fi with internet) --MQTT/TLS 8883--> HiveMQ Cloud <--WSS 8884-- this page
