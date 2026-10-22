@@ -178,10 +178,11 @@ footer{grid-column:1/-1;text-align:center;font-size:12px;color:var(--mute);paddi
 <script>
 // ---- cloud layer: answers the dashboard's /api, /notes, /meta and /cmd requests from MQTT ----
 (function(){
-const KEY='slopesense_cloud';
+const KEY='slopesense_cloud',PUBLIC={host:'wss://public.cloud.shiftr.io',user:'public',pass:'public',id:'beacd8',pub:1};
 let cfg=null,client=null,id=null,api=null,apiAt=0,notes=null,meta=null,online=null,waiters=[],helloT=null;
 function load(){try{const h=location.hash.match(/#c=([^&]+)/);if(h){const c=JSON.parse(decodeURIComponent(escape(atob(h[1]))));localStorage.setItem(KEY,JSON.stringify(c));history.replaceState(null,'',location.pathname+location.search)}}catch(e){}
- try{cfg=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){cfg=null}}
+ try{cfg=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){cfg=null}if(!cfg||!cfg.host)cfg=PUBLIC}
+window.cloudIsPublic=()=>!!(cfg&&cfg.pub);
 function wake(){const w=waiters;waiters=[];w.forEach(f=>f())}
 function base(){return 'slopesense/'+id+'/'}
 function connect(){
@@ -217,21 +218,22 @@ window.fetch=async function(u,o){
  if(path==='/wifi'||path==='/wifiscan'||path==='/cloud'){throw new Error('Change Wi-Fi from the local dashboard')}
  return realFetch(u,o)};
 window.cloudSetup=function(){const b=document.getElementById('csetup');b.classList.add('show');
- if(cfg){document.getElementById('c_h').value=cfg.host||'';document.getElementById('c_u').value=cfg.user||'';document.getElementById('c_p').value=cfg.pass||''}};
+ if(cfg&&!cfg.pub){document.getElementById('c_h').value=cfg.host||'';document.getElementById('c_u').value=cfg.user||'';document.getElementById('c_p').value=cfg.pass||''}};
 window.cloudSave=function(){const h=document.getElementById('c_h').value.trim(),u=document.getElementById('c_u').value.trim(),p=document.getElementById('c_p').value;
  if(!h||!u||!p)return setErr('Fill in all three');cfg={host:h,user:u,pass:p};try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}setErr('Connecting…');connect()};
 window.cloudShare=function(){if(!cfg)return;const l=location.origin+location.pathname+'#c='+btoa(unescape(encodeURIComponent(JSON.stringify({host:cfg.host,user:cfg.user,pass:cfg.pass}))));
  (navigator.clipboard?navigator.clipboard.writeText(l):Promise.reject()).then(()=>setErr('Link copied. It contains the viewer password: share it only with people you trust.'),()=>prompt('Copy this link (it contains the viewer password):',l))};
-document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('cloudmode');load();if(cfg&&cfg.host)connect();else cloudSetup()});
+window.cloudPublic=function(){try{localStorage.removeItem(KEY)}catch(e){}location.reload()};
+document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('cloudmode');load();connect()});
 })();
 </script>
 </head><body><div id="csetup"><div class="box"><h2>SlopeSense cloud</h2>
-<div class="muted small">Enter the HiveMQ Cloud viewer login. It is saved on this device only.</div>
+<div class="muted small">Normally no login is needed: the page uses the free public view (watch only). Only fill this in if you set up your own private HiveMQ Cloud broker. Saved on this device only.</div>
 <label for="c_h">Cluster URL</label><input id="c_h" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="xxxxxxxx.s1.eu.hivemq.cloud">
 <label for="c_u">Username</label><input id="c_u" autocomplete="off" autocapitalize="none" spellcheck="false">
 <label for="c_p">Password</label><input id="c_p" type="password" autocomplete="off">
 <div class="err" id="cerr"></div>
-<div class="btns" style="margin-top:12px"><button class="b pri" onclick="cloudSave()">Connect</button><button class="b" onclick="cloudShare()">Copy share link</button><button class="b" onclick="document.getElementById('csetup').classList.remove('show')">Close</button></div>
+<div class="btns" style="margin-top:12px"><button class="b pri" onclick="cloudSave()">Connect</button><button class="b" onclick="cloudPublic()">Use public view</button><button class="b" onclick="cloudShare()">Copy share link</button><button class="b" onclick="document.getElementById('csetup').classList.remove('show')">Close</button></div>
 </div></div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -369,7 +371,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('c
 <div class="note">Ultrasonic off: the AI and the "surface moved" rule ignore it. Keep it off until the sensor is aimed at a fixed target on the slope, then switch it on and restart the session.<br>Restart after moving sensors: the first 30 s set the zero for tilt, distance and rain cup.</div>
 </div></details>
 </div></section>
-<footer>SlopeSense cloud view · on-device AI · data through HiveMQ Cloud · <a href="#" onclick="cloudSetup();return false">connection settings</a></footer>
+<footer>SlopeSense cloud view · on-device AI · watch-only view through the cloud · controls on the local dashboard · <a href="#" onclick="cloudSetup();return false">private broker</a></footer>
 </main>
 
 <nav class="tabs" id="tabs"><a href="#overview" class="act"><svg class="i"><use href="#i-home"/></svg>Overview</a><a href="#camera"><svg class="i"><use href="#i-cam"/></svg>Camera</a><a href="#sensors"><svg class="i"><use href="#i-chip"/></svg>Sensors</a><a href="#test"><svg class="i"><use href="#i-play"/></svg>Test</a><a href="#settings"><svg class="i"><use href="#i-gear"/></svg>Settings</a></nav>
@@ -593,5 +595,6 @@ addEventListener('resize',()=>{if(last)render(last)});init();
 </script><script>
 // camera pictures only travel on the local network; the motion score still arrives through the cloud
 camTick=function(){};
+if(cloudIsPublic()){cmd=function(){toast('View only: use the local dashboard for controls')};usToggle=function(){cmd()}}
 camRender=function(d){$('camoff').style.display='flex';$('camofftxt').textContent='Camera picture: local network only. Motion score: '+(d.dev.cam_motion?d.raw.cam.toFixed(1)+' / 100':'not arriving')};
 </script></body></html>

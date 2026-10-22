@@ -11,7 +11,12 @@ so it works from any phone or laptop on any internet.
 Built from `firmware/sentinel_live/dashboard.h` by `tools/make_cloud_page.py` — rerun it after
 changing the dashboard. Host this folder as static files (GitHub Pages).
 
-## One-time setup
+## No-login mode (default)
+Out of the box the board sends to the free public broker `public.cloud.shiftr.io` (user/pass `public`),
+and the page opens straight onto it: no accounts. Anyone with the page can watch, so in this mode it is
+**view-only**: the board ignores commands from the internet. Over USB: `K,public` / `K,off`.
+
+## Private mode (optional): own HiveMQ Cloud broker
 1. Sign up at hivemq.com → HiveMQ Cloud → create a free **Serverless** cluster.
    Note the **Cluster URL** (like `abc123.s1.eu.hivemq.cloud`).
 2. Cluster → Access Management → create two credentials:
