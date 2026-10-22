@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1014" id="tcol"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg" type="image/svg+xml"><meta name="mobile-web-app-capable" content="yes">
+<title>SlopeSense Monitor</title>
+<style>
+:root{--bg:#0b1014;--s1:#11181e;--s2:#172128;--s3:#1e2a33;--line:#22303a;--ink:#e7edf1;--ink2:#b9c5cd;--mute:#7f909c;
+--safe:#2fbf71;--watch:#f0a020;--danger:#ef5350;--accent:#4c9aff;--fault:#a989f5;--on-accent:#fff;--dark:#05080a;--shadow:0 1px 2px rgba(0,0,0,.4);color-scheme:dark}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f3f5f7;--s1:#fff;--s2:#f4f6f8;--s3:#e9edf1;--line:#e0e6eb;--ink:#0f1b24;--ink2:#33434f;--mute:#5d6c78;
+--safe:#16884a;--watch:#b86a00;--danger:#d32f2f;--accent:#1f66d1;--fault:#6a3fc8;--dark:#1b252c;--shadow:0 1px 2px rgba(16,27,36,.06),0 1px 8px rgba(16,27,36,.04);color-scheme:light}}
+:root[data-theme="light"]{--bg:#f3f5f7;--s1:#fff;--s2:#f4f6f8;--s3:#e9edf1;--line:#e0e6eb;--ink:#0f1b24;--ink2:#33434f;--mute:#5d6c78;
+--safe:#16884a;--watch:#b86a00;--danger:#d32f2f;--accent:#1f66d1;--fault:#6a3fc8;--dark:#1b252c;--shadow:0 1px 2px rgba(16,27,36,.06),0 1px 8px rgba(16,27,36,.04);color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+@media(min-width:1000px){body{padding-bottom:24px}}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+/* ---- top bar ---- */
+.top{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+.top .in{max-width:1240px;margin:0 auto;height:56px;padding:0 16px;display:flex;align-items:center;gap:12px}
+.logo{width:32px;height:32px;border-radius:9px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;flex:none}
+.logo svg{width:20px;height:20px}
+.brand{min-width:0;line-height:1.15}.brand b{display:block;font-size:15px;font-weight:700;letter-spacing:.1px}.brand span{font-size:12px;color:var(--mute);white-space:nowrap}
+.tnav{display:none;gap:2px;margin-left:18px}.tnav a{color:var(--mute);font-weight:500;padding:7px 11px;border-radius:8px;font-size:13px}.tnav a:hover{background:var(--s2);text-decoration:none;color:var(--ink)}.tnav a.act{color:var(--ink);background:var(--s2)}
+@media(min-width:1000px){.tnav{display:flex}}
+.sp{flex:1}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:5px 10px;border-radius:99px;background:var(--s2);border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--mute)}
+.chip.ok{color:var(--safe)}.chip.ok i{background:var(--safe);box-shadow:0 0 0 3px rgba(47,191,113,.2)}.chip.bad{color:var(--danger)}.chip.bad i{background:var(--danger)}
+.ibtn{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--s1);color:var(--ink2);display:grid;place-items:center;cursor:pointer;flex:none}
+/* ---- bottom tabs (phones) ---- */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--s1);border-top:1px solid var(--line);display:flex;padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+.tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:var(--mute);font-size:11px;font-weight:600;border-radius:10px;text-decoration:none}
+.tabs a.act{color:var(--accent)}.tabs a svg.i{width:22px;height:22px}
+@media(min-width:1000px){.tabs{display:none}}
+/* ---- layout ---- */
+main{max-width:1240px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:repeat(12,minmax(0,1fr));align-items:start}
+main>*{grid-column:1/-1;min-width:0}.col{display:grid;gap:16px;align-content:start;min-width:0}
+@media(min-width:1000px){.c7{grid-column:span 7}.c5{grid-column:span 5}.c8{grid-column:span 8}.c4{grid-column:span 4}.c6{grid-column:span 6}}
+.card{background:var(--s1);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);min-width:0}
+.ch{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.ch h2{margin:0;font-size:15px;font-weight:650;letter-spacing:.1px;flex:1;min-width:0}.ch h2 small{display:block;font-size:12px;color:var(--mute);font-weight:400;letter-spacing:0;margin-top:1px}
+.ch .i{color:var(--mute)}
+.cb{padding:16px}
+.muted{color:var(--mute)}.small{font-size:12px}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--mute)}
+/* ---- hero status ---- */
+.hero{position:relative;overflow:hidden;color:var(--mute)}
+.hero::before{content:"";position:absolute;inset:0;background:currentColor;opacity:.07;pointer-events:none}
+.hero::after{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:currentColor}
+.hero.s0{color:var(--safe)}.hero.s1{color:var(--watch)}.hero.s2{color:var(--danger);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px rgba(239,83,80,.28)}}
+.hero .in{position:relative;padding:20px 20px 18px 24px;display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:1000px){.hero .in{grid-template-columns:minmax(0,1fr) auto;align-items:center}}
+.st{display:flex;gap:16px;align-items:center}
+.sico{width:56px;height:56px;border-radius:16px;background:currentColor;display:grid;place-items:center;flex:none}
+.sico svg{width:30px;height:30px;stroke:var(--s1);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#state{font-size:clamp(30px,8vw,44px);font-weight:800;letter-spacing:.5px;line-height:1.05;color:currentColor}
+#sub{color:var(--ink);font-size:15px;margin-top:4px;font-weight:500}
+#why{color:var(--ink2);font-size:13px;margin-top:2px}
+.road{display:flex;align-items:center;gap:14px;background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--ink)}
+.tl{display:flex;flex-direction:column;gap:5px;background:var(--dark);padding:6px;border-radius:10px}
+.tl i{width:14px;height:14px;border-radius:50%;background:#2a333a}.tl .r.on{background:#ef5350;box-shadow:0 0 8px #ef5350}.tl .a.on{background:#f0a020;box-shadow:0 0 8px #f0a020}.tl .g.on{background:#2fbf71;box-shadow:0 0 8px #2fbf71}
+#roadtxt{font-size:12px;color:var(--mute);line-height:1.35}#roadtxt b{display:block;font-size:15px;color:var(--ink)}
+.warm{position:relative;height:6px;background:var(--s3);border-radius:4px;overflow:hidden;margin:0 20px 18px 24px}.warm div{height:100%;background:var(--accent);transition:width 1s linear}
+/* ---- KPI strip ---- */
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border-radius:14px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow)}
+@media(min-width:1000px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(min-width:1100px){.kpis{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.kpi{background:var(--s1);padding:12px 14px;min-width:0}
+.kpi .l{font-size:12px;color:var(--mute);display:flex;align-items:center;gap:6px;white-space:nowrap}.kpi .l svg.i{width:14px;height:14px}
+.kpi .v{font-size:20px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi .v small{font-size:12px;font-weight:500;color:var(--mute);margin-left:2px}
+.kpi .x{font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mbar{height:4px;background:var(--s3);border-radius:3px;margin-top:6px;overflow:hidden}.mbar div{height:100%;border-radius:3px;transition:width .4s}
+/* ---- tags ---- */
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:var(--s2);color:var(--mute);border:1px solid var(--line)}
+.tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.5}
+.tag.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.tag.on::before{opacity:1}
+/* ---- camera ---- */
+.cam{position:relative;aspect-ratio:4/3;background:#000;border-radius:10px;overflow:hidden}
+.cam img{width:100%;height:100%;object-fit:cover;display:block}.cam img.px{image-rendering:pixelated;object-fit:contain}
+.ov{position:absolute;background:rgba(5,8,10,.62);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:8px}
+.badge{left:10px;bottom:10px;font-size:12px;padding:4px 9px;max-width:68%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:#ef5350;flex:none}
+.score{right:10px;top:10px;padding:6px 11px;text-align:right;line-height:1.1}.score b{font-size:22px;display:block}.score span{font-size:11px;opacity:.75}
+.camoff{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;color:#9aa6ae;font-size:14px;text-align:center;padding:20px}.camoff svg{width:34px;height:34px;opacity:.6}
+.seg{display:flex;background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;color:var(--mute);padding:8px 4px;border-radius:7px;font:inherit;font-size:13px;font-weight:600;min-height:40px;min-width:0;cursor:pointer}
+.seg button.on{background:var(--s1);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+canvas{width:100%;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-top:8px}.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:12px;height:3px;border-radius:2px}
+/* ---- probabilities ---- */
+.probs{display:grid;gap:8px}.prob{display:grid;grid-template-columns:70px minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:13px;font-weight:600}
+.prob span:last-child{text-align:right}.track{height:8px;background:var(--s3);border-radius:5px;overflow:hidden}.fill{height:100%;border-radius:5px;transition:width .4s}
+/* ---- sensors ---- */
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}@media(min-width:600px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tile{background:var(--s2);border-radius:12px;padding:12px 12px 8px;border:1px solid var(--line);min-width:0;position:relative}
+.tile.hot{border-color:var(--watch);box-shadow:inset 0 0 0 1px var(--watch)}
+.tile .n{font-size:12px;font-weight:600;color:var(--mute);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.tile .n svg.i{width:15px;height:15px}
+.tile .v{font-size:24px;font-weight:700;margin-top:4px;white-space:nowrap;letter-spacing:-.3px}.tile .v small{font-size:12px;font-weight:500;color:var(--mute);margin-left:3px;letter-spacing:0}
+.tile .x{font-size:11px;color:var(--mute);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile canvas{margin-top:6px;opacity:.9}
+.tile.hot .n{color:var(--watch)}
+/* ---- lists ---- */
+.rows{display:grid}.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.row:last-child{border-bottom:0}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--mute)}.dot.ok{background:var(--safe)}.dot.warn{background:var(--watch)}.dot.bad{background:var(--danger)}
+.row .d,.step .d{font-size:12px;color:var(--mute)}
+.ev{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border-bottom:1px solid var(--line)}.ev:last-child{border-bottom:0}
+.ev .k{font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;color:var(--s1)}
+.empty{color:var(--mute);font-size:13px;padding:14px 0;text-align:center}
+/* ---- buttons & inputs ---- */
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button.b{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--s1);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font:inherit;font-size:13px;font-weight:600;min-height:42px;cursor:pointer;box-shadow:var(--shadow)}
+button.b:hover{background:var(--s2)}button.b svg.i{width:16px;height:16px}
+button.b.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}button.b.pri:hover{filter:brightness(1.07)}button.b.on{opacity:.7}
+button.b.warn{color:var(--danger)}
+input{width:100%;background:var(--s2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px;min-height:44px;outline:none}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(76,154,255,.22)}
+label{font-size:12px;font-weight:600;color:var(--ink2);display:block;margin:12px 0 5px}
+.pw{position:relative}.pw input{padding-right:84px}.pw button{position:absolute;right:6px;top:6px;bottom:6px;border:0;background:var(--s3);color:var(--ink2);border-radius:7px;font:inherit;font-size:12px;font-weight:600;padding:0 10px;cursor:pointer}
+.nets{display:grid;gap:6px;margin-top:10px}.nets button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;min-height:46px;text-align:left;cursor:pointer}
+.nets button:hover{border-color:var(--accent)}
+.sig{display:inline-flex;gap:2px;align-items:flex-end;height:14px}.sig i{width:3px;background:var(--s3);border-radius:1px}.sig i.on{background:var(--ink2)}
+details{border-top:1px solid var(--line)}details:first-of-type{margin-top:14px}
+summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:14px 0;font-weight:650;font-size:14px}summary::-webkit-details-marker{display:none}
+summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:rotate(45deg);transition:transform .2s}
+details[open] summary::after{transform:rotate(-135deg)}details>div{padding-bottom:16px}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);font-size:13px;overflow-wrap:anywhere}.kv>span{padding:9px 0;border-bottom:1px solid var(--line)}.kv>span:nth-child(odd){color:var(--mute);padding-right:16px}
+.kv>span:nth-last-child(-n+2){border-bottom:0}
+.note{background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--ink2);margin-top:10px}
+/* ---- input test ---- */
+#now{background:var(--s2);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:none;font-size:13px}#now b{font-size:16px}
+.steps{display:grid}.step{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:13px;padding:8px 6px;border-radius:8px;border-bottom:1px solid var(--line)}.step:last-child{border-bottom:0}
+.step.cur{background:var(--s2)}
+.step .i{width:22px;height:22px;border-radius:50%;background:var(--s3);color:var(--mute);font-size:11px;font-weight:700;display:grid;place-items:center}
+.r-PASS,.r-FAIL,.r-SKIP,.r-CHECK{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;letter-spacing:.3px}
+.r-PASS{color:var(--safe);background:rgba(47,191,113,.12)}.r-FAIL{color:var(--danger);background:rgba(239,83,80,.12)}.r-SKIP,.r-CHECK{color:var(--watch);background:rgba(240,160,32,.12)}
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translate(-50%,8px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:90vw;z-index:20;box-shadow:0 6px 24px rgba(0,0,0,.3)}
+#toast.show{opacity:1;transform:translate(-50%,0)}@media(min-width:1000px){#toast{bottom:24px}}
+.chip.hs{color:var(--mute)}.chip.hs.s0{color:var(--safe)}.chip.hs.s0 i{background:var(--safe)}.chip.hs.s1{color:var(--watch)}.chip.hs.s1 i{background:var(--watch)}
+.chip.hs.s2{color:#fff;background:var(--danger);border-color:var(--danger)}.chip.hs.s2 i{background:#fff;animation:blink 1s infinite}@keyframes blink{50%{opacity:.2}}
+@media(max-width:999px){.pg:not(.cur){display:none!important}.col{display:contents}.col>*{grid-column:1/-1}#s-health{order:1}.brand span{display:none}#conn #conntxt{display:none}#conn{padding:5px 7px}.c7,.c5{grid-column:1/-1}main{padding:12px;gap:12px}.cb{padding:14px}.ch{padding:12px 14px}}
+#alarm{position:fixed;inset:0;z-index:30;background:#c62828;color:#fff;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;animation:flash 1s infinite}
+#alarm.on{display:flex}#alarm svg.i{width:64px;height:64px;stroke-width:2.2}#alarm b{display:block;font-size:44px;letter-spacing:2px;margin:8px 0}#alarm div div{font-size:18px;line-height:1.4}#alarm .sm{font-size:14px;opacity:.85;margin-top:10px}
+#alarm button{margin-top:24px;background:#fff;color:#c62828;border:0;font-size:16px;padding:12px 24px}@keyframes flash{50%{background:#8e1c1c}}
+footer{grid-column:1/-1;text-align:center;font-size:12px;color:var(--mute);padding:4px 0 8px}
+/* ---- notifications ---- */
+.ibtn{position:relative}
+.nbadge{position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;border-radius:10px;background:var(--danger);color:#fff;font-size:11px;font-weight:700;display:none;place-items:center;padding:0 5px;border:2px solid var(--bg);line-height:1}
+.nbadge.on{display:grid}
+#nshade{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.45);display:none}#nshade.on{display:block}
+#npanel{position:fixed;z-index:26;top:0;right:0;bottom:0;width:min(420px,100vw);background:var(--s1);border-left:1px solid var(--line);display:flex;flex-direction:column;transform:translateX(100%);visibility:hidden;transition:transform .25s,visibility .25s;padding-top:env(safe-area-inset-top)}
+#npanel.on{transform:none;visibility:visible}
+.nh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}.nh h2{margin:0;font-size:16px;flex:1}
+.nh button.b{min-height:36px;padding:6px 11px;box-shadow:none}
+#nlist{overflow:auto;flex:1;padding:0 14px calc(16px + env(safe-area-inset-bottom))}
+.nt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.nt:last-child{border-bottom:0}
+.nt .ni{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff}.nt .ni svg.i{width:18px;height:18px}
+.nt b{font-size:14px;display:block}.nt p{margin:2px 0 4px;font-size:13px;color:var(--ink2)}.nt .tm{font-size:12px;color:var(--mute)}
+.nt.unread b::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:8px;vertical-align:middle}
+#nbanner{position:fixed;z-index:24;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translate(-50%,-16px);opacity:0;pointer-events:none;width:min(440px,calc(100vw - 24px));background:var(--s1);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:12px 14px;transition:opacity .25s,transform .25s;cursor:pointer;display:flex;gap:12px;align-items:flex-start}
+#nbanner.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#nbanner b{display:block;font-size:14px}#nbanner span{font-size:13px;color:var(--ink2)}#nbanner svg.i{width:20px;height:20px;margin-top:1px}
+.opt{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer;margin:0;color:var(--ink);font-weight:500}.opt:last-of-type{border-bottom:0}
+.opt input{width:20px;height:20px;min-height:0;accent-color:var(--accent);flex:none;margin:0}.opt small{display:block;color:var(--mute);font-weight:400}
+</style><script src="mqtt.min.js"></script>
+<style>
+.cloudmode #wifibox,.cloudmode #cloudbox{display:none}
+#csetup{position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;background:color-mix(in srgb,var(--bg,#0b1014) 88%,transparent);padding:16px}
+#csetup.show{display:flex}
+#csetup .box{max-width:420px;width:100%;background:var(--card,#141b22);border:1px solid var(--line,#2a333d);border-radius:16px;padding:20px}
+#csetup h2{margin:0 0 6px;font-size:20px}#csetup label{display:block;margin:12px 0 4px;font-size:13px;opacity:.8}
+#csetup input{width:100%;box-sizing:border-box}#csetup .err{color:var(--danger,#e5534b);min-height:1.3em;margin-top:10px;font-size:14px}
+</style>
+<script>
+// ---- cloud layer: answers the dashboard's /api, /notes, /meta and /cmd requests from MQTT ----
+(function(){
+const KEY='slopesense_cloud';
+let cfg=null,client=null,id=null,api=null,apiAt=0,notes=null,meta=null,online=null,waiters=[],helloT=null;
+function load(){try{const h=location.hash.match(/#c=([^&]+)/);if(h){const c=JSON.parse(decodeURIComponent(escape(atob(h[1]))));localStorage.setItem(KEY,JSON.stringify(c));history.replaceState(null,'',location.pathname+location.search)}}catch(e){}
+ try{cfg=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){cfg=null}}
+function wake(){const w=waiters;waiters=[];w.forEach(f=>f())}
+function base(){return 'slopesense/'+id+'/'}
+function connect(){
+ if(client){try{client.end(true)}catch(e){}client=null}
+ id=cfg.id||null;api=null;notes=null;meta=null;online=null;
+ const host=cfg.host.replace(/^\w+:\/\//,'').replace(/[:/].*$/,'');
+ const url=/^wss?:\/\//.test(cfg.host)?cfg.host:'wss://'+host+':8884/mqtt';  // HiveMQ Cloud WebSocket port
+ client=mqtt.connect(url,{username:cfg.user,password:cfg.pass,clientId:'view-'+Math.random().toString(16).slice(2,10),reconnectPeriod:4000,connectTimeout:10000,clean:true});
+ client.on('connect',()=>{setErr('');document.getElementById('csetup')?.classList.remove('show');
+  client.subscribe(id?'slopesense/'+id+'/#':'slopesense/+/#');hello();clearInterval(helloT);helloT=setInterval(hello,20000)});
+ client.on('error',e=>{setErr(/auth|Not authorized|bad user/i.test(e.message)?'Wrong username or password':'Cannot reach the broker: '+e.message)});
+ client.on('message',(t,m)=>{const p=t.split('/');if(p[0]!=='slopesense'||p.length<3)return;
+  if(!id){id=p[1];client.unsubscribe('slopesense/+/#');client.subscribe(base()+'#');hello()}
+  if(p[1]!==id)return;const k=p[2],s=m.toString();
+  try{if(k==='api'){api=JSON.parse(s);apiAt=Date.now()}else if(k==='notes')notes=JSON.parse(s);else if(k==='meta')meta=JSON.parse(s);else if(k==='status')online=s==='online'}catch(e){}
+  wake()});}
+function hello(){if(client&&client.connected&&id)client.publish(base()+'hello','1')}
+function setErr(t){const e=document.getElementById('cerr');if(e)e.textContent=t}
+function json(o){return new Response(JSON.stringify(o),{status:200,headers:{'Content-Type':'application/json'}})}
+function wait(ok,ms){return new Promise((res,rej)=>{if(ok())return res();const t=setTimeout(()=>rej(new Error('timeout')),ms);
+ const f=()=>{if(ok()){clearTimeout(t);res()}else waiters.push(f)};waiters.push(f)})}
+const realFetch=window.fetch.bind(window);
+window.fetch=async function(u,o){
+ const url=new URL(typeof u==='string'?u:u.url,location.href);if(url.origin!==location.origin)return realFetch(u,o);
+ const path=url.pathname.replace(/^.*\//,'/'),q=url.searchParams;
+ if(path==='/meta'){await wait(()=>meta,15000);return json(meta)}
+ if(path==='/api'){await wait(()=>api,8000);
+  if(online===false||Date.now()-apiAt>(api&&api.cloud&&api.cloud.viewer?12000:45000))throw new Error('board offline');
+  return json(api)}
+ if(path==='/notes'){await wait(()=>notes,8000);const since=+q.get('b')===notes.b?+q.get('since'):0;
+  return json({b:notes.b,up:notes.up,notes:notes.notes.filter(n=>n.id>since)})}
+ if(path==='/cmd'){if(!client||!client.connected||!id)throw new Error('not connected');client.publish(base()+'cmd',url.search.slice(1));return new Response('ok')}
+ if(path==='/wifi'||path==='/wifiscan'||path==='/cloud'){throw new Error('Change Wi-Fi from the local dashboard')}
+ return realFetch(u,o)};
+window.cloudSetup=function(){const b=document.getElementById('csetup');b.classList.add('show');
+ if(cfg){document.getElementById('c_h').value=cfg.host||'';document.getElementById('c_u').value=cfg.user||'';document.getElementById('c_p').value=cfg.pass||''}};
+window.cloudSave=function(){const h=document.getElementById('c_h').value.trim(),u=document.getElementById('c_u').value.trim(),p=document.getElementById('c_p').value;
+ if(!h||!u||!p)return setErr('Fill in all three');cfg={host:h,user:u,pass:p};try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}setErr('Connecting…');connect()};
+window.cloudShare=function(){if(!cfg)return;const l=location.origin+location.pathname+'#c='+btoa(unescape(encodeURIComponent(JSON.stringify({host:cfg.host,user:cfg.user,pass:cfg.pass}))));
+ (navigator.clipboard?navigator.clipboard.writeText(l):Promise.reject()).then(()=>setErr('Link copied. It contains the viewer password: share it only with people you trust.'),()=>prompt('Copy this link (it contains the viewer password):',l))};
+document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('cloudmode');load();if(cfg&&cfg.host)connect();else cloudSetup()});
+})();
+</script>
+</head><body><div id="csetup"><div class="box"><h2>SlopeSense cloud</h2>
+<div class="muted small">Enter the HiveMQ Cloud viewer login. It is saved on this device only.</div>
+<label for="c_h">Cluster URL</label><input id="c_h" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="xxxxxxxx.s1.eu.hivemq.cloud">
+<label for="c_u">Username</label><input id="c_u" autocomplete="off" autocapitalize="none" spellcheck="false">
+<label for="c_p">Password</label><input id="c_p" type="password" autocomplete="off">
+<div class="err" id="cerr"></div>
+<div class="btns" style="margin-top:12px"><button class="b pri" onclick="cloudSave()">Connect</button><button class="b" onclick="cloudShare()">Copy share link</button><button class="b" onclick="document.getElementById('csetup').classList.remove('show')">Close</button></div>
+</div></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-logo" viewBox="0 0 24 24"><path d="M2 20h20L14 6l-4 6-2-3z"/><path d="M14 6v0M7 15l3-3"/></symbol>
+<symbol id="i-ok" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
+<symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><path d="M8 2h8l6 6v8l-6 6H8l-6-6V8z"/><path d="M12 7v6M12 17h.01"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+<symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/></symbol>
+<symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+<symbol id="i-ai" viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 8-9"/><path d="M14 6h6v6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+<symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s7 7.5 7 12a7 7 0 0 1-14 0c0-4.5 7-12 7-12z"/></symbol>
+<symbol id="i-rain" viewBox="0 0 24 24"><path d="M7 15a5 5 0 1 1 1-9.9A6 6 0 0 1 19 9a4 4 0 0 1-1 7.9"/><path d="M8 19l-1 2M12 18l-1 3M16 19l-1 2"/></symbol>
+<symbol id="i-tilt" viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M5 20L17 6"/><path d="M12 20a7 7 0 0 0-2-5"/></symbol>
+<symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 12h3l3-8 4 16 3-10 2 2h5"/></symbol>
+<symbol id="i-ruler" viewBox="0 0 24 24"><path d="M4 12h16M4 8v8M20 8v8"/><path d="M9 12l-3 0M18 12h-3"/></symbol>
+<symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><path d="M12 19h.01"/></symbol>
+<symbol id="i-road" viewBox="0 0 24 24"><path d="M8 3L4 21M16 3l4 18M12 4v3M12 10v3M12 16v3"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+</svg>
+
+<header class="top"><div class="in">
+<div class="logo"><svg class="i"><use href="#i-logo"/></svg></div>
+<div class="brand"><b>SlopeSense</b><span>Landslide early warning</span></div>
+<nav class="tnav" id="tnav"><a href="#s-status">Overview</a><a href="#s-camera">Camera</a><a href="#s-sensors">Sensors</a><a href="#s-health">System</a><a href="#s-test">Input test</a><a href="#s-settings">Settings</a></nav>
+<div class="sp"></div>
+<span class="chip hs" id="hstate"><i></i><span id="hstxt">-</span></span>
+<span class="chip" id="conn"><i></i><span id="conntxt">Connecting</span></span>
+<button class="ibtn" id="bellb" onclick="notesOpen()" title="Notifications" aria-label="Notifications"><svg class="i"><use href="#i-bell"/></svg><span class="nbadge num" id="nbadge"></span></button>
+<button class="ibtn" onclick="theme()" title="Light / dark" aria-label="Switch light or dark"><svg class="i"><use href="#i-sun"/></svg></button>
+</div></header>
+
+<main>
+<section class="card hero s9 pg t0" id="s-status">
+<div class="in">
+ <div class="st"><div class="sico"><svg><use id="sicon" href="#i-clock"/></svg></div>
+  <div style="min-width:0"><div class="eyebrow" style="color:var(--ink2)">Slope status</div><div id="state">-</div><div id="sub">-</div><div id="why"></div></div></div>
+ <div class="road"><div class="tl"><i class="r" id="lr"></i><i class="a" id="la"></i><i class="g" id="lg"></i></div><div id="roadtxt"><b>Road</b>-</div></div>
+</div>
+<div class="warm" id="warm"><div id="warmf"></div></div>
+</section>
+
+<div class="kpis pg t0" id="s-kpi">
+ <div class="kpi"><div class="l"><svg class="i"><use href="#i-stop"/></svg>Danger risk</div><div class="v num" id="k_d">-</div><div class="mbar"><div id="k_db" style="background:var(--danger);width:0"></div></div></div>
+ <div class="kpi"><div class="l"><svg class="i"><use href="#i-warn"/></svg>Watch risk</div><div class="v num" id="k_w">-</div><div class="mbar"><div id="k_wb" style="background:var(--watch);width:0"></div></div></div>
+ <div class="kpi"><div class="l"><svg class="i"><use href="#i-cam"/></svg>Camera motion</div><div class="v num" id="k_c">-</div><div class="x" id="k_cx">-</div></div>
+ <div class="kpi"><div class="l"><svg class="i"><use href="#i-road"/></svg>Barrier</div><div class="v" id="k_b">-</div><div class="x" id="k_bx">-</div></div>
+ <div class="kpi"><div class="l"><svg class="i"><use href="#i-clock"/></svg>Session</div><div class="v num" id="k_t">-</div><div class="x num" id="k_tx">-</div></div>
+ <div class="kpi"><div class="l"><svg class="i"><use href="#i-wifi"/></svg>Network</div><div class="v" id="k_n">-</div><div class="x" id="k_nx">-</div></div>
+</div>
+
+<section class="card c7 pg t1" id="s-camera">
+<div class="ch"><svg class="i"><use href="#i-cam"/></svg><h2>Slope camera<small id="camstat">-</small></h2></div>
+<div class="cb">
+<div class="cam"><img id="camimg" alt=""><div class="ov badge" id="cambadge">-</div><div class="ov score"><b id="camscore" class="num">-</b><span>motion / 100</span></div>
+<div class="camoff" id="camoff"><svg class="i"><use href="#i-cam"/></svg><span id="camofftxt">Camera not heard yet</span></div></div>
+<div class="seg" id="camseg" style="margin-top:12px"><button data-m="live" class="on">Live</button><button data-m="video">Video</button><button data-m="moved">Moved</button><button data-m="alert">Alert photo</button></div>
+<div class="eyebrow" style="margin:16px 0 6px">Motion score · last 2 min</div>
+<canvas id="cvcam" height="64"></canvas>
+<div class="legend"><span><i style="background:var(--accent)"></i>Motion score (one point / 5 s)</span><span><i style="background:var(--mute)"></i>20 = clear movement</span></div>
+</div></section>
+
+<div class="c5 col">
+<section class="card pg t0" id="s-ai">
+<div class="ch"><svg class="i"><use href="#i-ai"/></svg><h2>AI risk assessment<small id="aiinfo">-</small></h2></div>
+<div class="cb">
+<div class="probs" id="probs"></div>
+<div class="tags" style="margin-top:14px"><span class="tag" id="tg_ai">AI</span><span class="tag" id="tg_mv">Ground moving</span><span class="tag" id="tg_rule">Safety rule</span><span class="tag" id="tg_bar">Barrier up</span></div>
+<div class="eyebrow" style="margin:18px 0 6px">Risk timeline</div>
+<canvas id="cv" height="170"></canvas>
+<div class="legend"><span><i style="background:var(--watch)"></i>Watch</span><span><i style="background:var(--danger)"></i>Danger</span><span><i style="background:var(--safe);height:8px"></i>Alert state strip</span></div>
+</div></section>
+
+<section class="card pg t2" id="s-health">
+<div class="ch"><svg class="i"><use href="#i-check"/></svg><h2>System health<small>Devices and links</small></h2></div>
+<div class="cb" style="padding-top:4px;padding-bottom:4px"><div class="rows" id="health"></div></div></section>
+
+</div>
+<section class="card pg t2" id="s-sensors">
+<div class="ch"><svg class="i"><use href="#i-chip"/></svg><h2>Field sensors<small id="sensage">-</small></h2></div>
+<div class="cb"><div class="tiles" id="tiles"></div>
+<div class="note">An orange edge means the reading is far from the quiet baseline the AI learned. Values under each reading are what the AI sees. Tilt 2 and vibration 2 copy the single MPU-6050.</div></div></section>
+
+<section class="card pg t0 phonly" id="s-phone"><div class="cb" style="display:flex;gap:12px;align-items:center"><svg class="i" style="width:22px;height:22px;color:var(--accent)"><use href="#i-bell"/></svg>
+<div style="flex:1;min-width:0"><b style="font-size:14px">Phone alarm</b><div class="small muted" id="paltxt">Vibrate and sound on this phone when the slope is in danger</div></div><button class="b pri" id="palb" onclick="armAlarm()">Turn on</button></div></section>
+<section class="card pg t0" id="s-log">
+<div class="ch"><svg class="i"><use href="#i-list"/></svg><h2>Alert log<small>What caused each change, newest first</small></h2></div>
+<div class="cb" style="padding-top:4px;padding-bottom:4px"><div id="evlog"></div></div></section>
+
+<section class="card c6 pg t3" id="s-test">
+<div class="ch"><svg class="i"><use href="#i-play"/></svg><h2>Input test<small>Checks every sensor and output, one step at a time</small></h2></div>
+<div class="cb"><div id="now"></div>
+<div class="btns" style="margin-bottom:12px"><button class="b pri" id="bt" onclick="cmd('t')">Start test</button><button class="b" onclick="cmd('y')">Yes, I saw it</button><button class="b" onclick="cmd('s')">Skip step</button><button class="b warn" onclick="cmd('x')">Stop</button></div>
+<div class="steps" id="tst"></div></div></section>
+
+<section class="card c6 pg t4" id="s-settings">
+<div class="ch"><svg class="i"><use href="#i-gear"/></svg><h2>Settings<small>Network and controls</small></h2></div>
+<div class="cb">
+<div class="kv" id="netkv"></div>
+<details id="wifibox"><summary><svg class="i"><use href="#i-wifi"/></svg>Change Wi-Fi network</summary><div>
+<div class="muted small">The SlopeSense unit always keeps its own network <b id="ownname">SlopeSense</b>. Here you choose the one network it joins (your phone hotspot). There is no fallback: if that network is off, open the dashboard through <b>SlopeSense</b> at 192.168.4.1. Saved on the board, no reflashing.</div>
+<div class="btns" style="margin-top:12px"><button class="b" onclick="scan()"><svg class="i"><use href="#i-search"/></svg>Scan for networks</button></div><div class="nets" id="nets"></div>
+<label for="ssid">Network name</label><input id="ssid" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="32">
+<label for="pass">Password</label><div class="pw"><input id="pass" type="password" autocomplete="off" maxlength="63"><button type="button" id="pwb" onclick="togglePw()">Show</button></div>
+<div class="note">Tip: tap a network from the scan so the name is exact. If it can't join, it keeps trying; the SlopeSense network always stays on.</div>
+<div class="btns" style="margin-top:12px"><button class="b pri" onclick="saveWifi()">Save and connect</button><button class="b" onclick="forgetWifi()">Forget network</button></div>
+</div></details>
+<details id="cloudbox"><summary><svg class="i"><use href="#i-wifi"/></svg>Cloud dashboard (view from anywhere)</summary><div>
+<div class="muted small">Sends this dashboard's data through a free HiveMQ Cloud broker, so the cloud page works from any phone or laptop on any internet. Needs internet on the Wi-Fi above (phone hotspot with mobile data). Saved on the board.</div>
+<div class="kv" id="cloudkv" style="margin-top:10px"></div>
+<label for="ch">Broker address (Cluster URL)</label><input id="ch" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="100" placeholder="xxxxxxxx.s1.eu.hivemq.cloud">
+<label for="cu">Username</label><input id="cu" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="64">
+<label for="cp">Password</label><div class="pw"><input id="cp" type="password" autocomplete="off" maxlength="64" placeholder="leave empty to keep the saved one"><button type="button" onclick="const e=$('cp');e.type=e.type=='password'?'text':'password'">Show</button></div>
+<div class="btns" style="margin-top:12px"><button class="b pri" onclick="saveCloud()">Save and connect</button><button class="b" onclick="saveCloud(1)">Turn off</button></div>
+</div></details>
+<details><summary><svg class="i"><use href="#i-bell"/></svg>Notifications</summary><div>
+<div class="muted small">Danger always pops up. Choose what else does. Everything is kept in the bell list either way.</div>
+<label class="opt"><input type="checkbox" id="np_w" onchange="nPref()"><span>Watch<small>Early warning: soil saturating or slope starting to move</small></span></label>
+<label class="opt"><input type="checkbox" id="np_o" onchange="nPref()"><span>All clear and recoveries<small>Back to Safe, camera or sensor working again</small></span></label>
+<label class="opt"><input type="checkbox" id="np_f" onchange="nPref()"><span>System faults<small>Camera offline, sensor missing, Wi-Fi drop, SlopeSense restart</small></span></label>
+<div class="btns" style="margin-top:12px"><button class="b" id="nsysb" onclick="nSysAsk()"><svg class="i"><use href="#i-bell"/></svg>Phone pop-ups outside this page</button><button class="b" onclick="nTest()">Send a test</button></div>
+<div class="note" id="nsysnote"></div>
+</div></details>
+<details open><summary><svg class="i"><use href="#i-gear"/></svg>Controls</summary><div>
+<div class="btns"><button class="b" id="bm" onclick="cmd('m')"><svg class="i"><use href="#i-bell"/></svg><span>Mute buzzer</span></button><button class="b" id="bus" onclick="usToggle()"><svg class="i"><use href="#i-ruler"/></svg><span>Ultrasonic: on</span></button><button class="b" onclick="if(confirm('Restart the session? The AI warms up again for 60 s.'))cmd('z')"><svg class="i"><use href="#i-redo"/></svg>Restart session</button></div>
+<div class="note">Ultrasonic off: the AI and the "surface moved" rule ignore it. Keep it off until the sensor is aimed at a fixed target on the slope, then switch it on and restart the session.<br>Restart after moving sensors: the first 30 s set the zero for tilt, distance and rain cup.</div>
+</div></details>
+</div></section>
+<footer>SlopeSense cloud view · on-device AI · data through HiveMQ Cloud · <a href="#" onclick="cloudSetup();return false">connection settings</a></footer>
+</main>
+
+<nav class="tabs" id="tabs"><a href="#overview" class="act"><svg class="i"><use href="#i-home"/></svg>Overview</a><a href="#camera"><svg class="i"><use href="#i-cam"/></svg>Camera</a><a href="#sensors"><svg class="i"><use href="#i-chip"/></svg>Sensors</a><a href="#test"><svg class="i"><use href="#i-play"/></svg>Test</a><a href="#settings"><svg class="i"><use href="#i-gear"/></svg>Settings</a></nav>
+<div id="alarm" onclick="ack()"><div><svg class="i"><use href="#i-stop"/></svg><b>DANGER</b><div>Slope failure expected within minutes.<br>Move away from the slope now.</div><div class="sm" id="alwhy"></div><button class="b">Silence alarm</button></div></div>
+<div id="toast"></div>
+<div id="nbanner" onclick="notesOpen()" role="status"><svg class="i" id="nbi"><use href="#i-bell"/></svg><div style="min-width:0"><b id="nbt"></b><span id="nbb"></span></div></div>
+<div id="nshade" onclick="notesClose()"></div>
+<aside id="npanel" aria-label="Notifications"><div class="nh"><svg class="i"><use href="#i-bell"/></svg><h2>Notifications</h2>
+<button class="b" onclick="notesClear()">Clear</button><button class="ibtn" onclick="notesClose()" aria-label="Close">✕</button></div><div id="nlist"></div></aside>
+<script>
+const $=id=>document.getElementById(id),NAMES=["SAFE","WATCH","DANGER"],ICON=["i-ok","i-warn","i-stop"];
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim(),COL=()=>[css('--safe'),css('--watch'),css('--danger')];
+const SUB={0:"Slope stable. Normal monitoring.",1:"Soil saturating or slope starting to move. Stay alert.",2:"Slope failure expected within minutes. EVACUATE."};
+const ROAD={GREEN:['Road open','Green signal'],CAUTION:['Road open','Caution'],AMBER:['Road closing','Red in 3 s'],RED:['Road closed','Barrier down'],REOPEN:['Reopening','Barrier lifting'],FAULT:['Sensor fault','MPU missing']};
+let meta=null,last=null,fails=0,camMode='live',camBusy=false,camStarted=false,lastSnap=-1,timer=null;
+const camBase=()=>`http://${location.hostname}:8080`;
+try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}
+function theme(){const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme=='dark':!matchMedia('(prefers-color-scheme: light)').matches;r.dataset.theme=dark?'light':'dark';
+ try{localStorage.setItem('theme',r.dataset.theme)}catch(e){}if(last)render(last)}
+function toast(t){const e=$('toast');e.textContent=t;e.className='show';clearTimeout(e._t);e._t=setTimeout(()=>e.className='',2600)}
+function cmd(c){fetch('/cmd?c='+c).then(()=>toast({t:'Input test started',s:'Step skipped',y:'Confirmed',x:'Test stopped',m:'Buzzer toggled',z:'Session restarted',n:'Test sent: it arrives within a second'}[c]||'OK')).catch(()=>toast('SlopeSense not reachable'))}
+const f1=v=>Math.abs(v)>=100?v.toFixed(0):Math.abs(v)>=10?v.toFixed(1):v.toFixed(2);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ic=n=>`<svg class="i"><use href="#${n}"/></svg>`;
+// sensor tiles: [name, value from raw readings, unit, AI inputs it feeds, extra line, decimals, icon]
+const TILES=[["Soil moisture 1",r=>r.soil1_pct,"%",[0,2],r=>`raw ${r.soil1}`,0,'i-drop'],["Soil moisture 2",r=>r.soil2_pct,"%",[1,3],r=>`raw ${r.soil2}`,0,'i-drop'],
+["Rain board",r=>r.wet*100,"% wet",[4],r=>`raw ${r.rain}`,0,'i-rain'],["Rain cup",r=>r.rain_mm,"mm",[5,6],r=>`raw ${r.water}`,1,'i-rain'],
+["Tilt",r=>r.tilt,"°",[7,8],r=>`${r.g} g`,2,'i-tilt'],["Vibration",r=>r.vib_mg,"mg",[11],r=>`peak ${r.vib_peak} mg`,1,'i-wave'],
+["Surface distance",r=>r.dist_mm>0?r.dist_mm/10:null,"cm",[13,14],r=>!r.us_on?'Switched off in settings':r.us_lost?'Target lost: ignored by the AI':`${r.echo}/10 echoes`,1,'i-ruler'],["Camera motion",r=>r.cam,"/100",[15],r=>'Neutral 3 when no camera',0,'i-cam'],["SW-420 shock",r=>r.sw420,"/s",[],r=>`total ${r.sw420_total}`,0,'i-wave']];
+const hist=TILES.map(()=>[]);
+async function init(){try{meta=await (await fetch('/meta')).json()}catch(e){return setTimeout(init,1500)}
+ $('probs').innerHTML=NAMES.map((n,i)=>`<div class=prob><span>${n[0]+n.slice(1).toLowerCase()}</span><div class=track><div class=fill id=b${i} style="width:0"></div></div><span id=bp${i} class=num>0%</span></div>`).join('');
+ $('tiles').innerHTML=TILES.map((t,i)=>`<div class=tile id=t${i}><div class=n>${ic(t[6])}${t[0]}</div><div class="v num" id=tv${i}>-</div><div class=x id=tx${i}></div><canvas id=sp${i} height=26></canvas></div>`).join('');
+ document.querySelectorAll('#camseg button').forEach(b=>b.onclick=()=>setCam(b.dataset.m));poll()}
+function hot(d,i){return d.ready&&Math.abs((d.x[i]-meta.mean[i])/meta.std[i])>2}
+function conn(ok){$('conn').className='chip '+(ok?'ok':'bad');$('conntxt').textContent=ok?'Live':'Offline'}
+async function poll(){clearTimeout(timer);try{const d=await (await fetch('/api',{cache:'no-store'})).json();fails=0;conn(1);render(d)}
+ catch(e){if(++fails>2)conn(0)}timer=setTimeout(poll,document.hidden?5000:1000)}  // keeps checking in the background so alerts still arrive
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){poll();camTick()}});
+const mm=s=>s<90?s+' s':(s/60).toFixed(1)+' min';
+const clock=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60,p=v=>String(v).padStart(2,'0');return (h?h+':'+p(m):m)+':'+p(x)};
+function render(d){const fresh=d!==last;last=d;const C=COL();
+ const ev=d.events||[],le=ev[ev.length-1];$('why').textContent=d.ready&&d.state>0&&le?`Cause: ${le.why} (at ${mm(le.t)})`:'';
+ $('evlog').innerHTML=ev.length?ev.slice().reverse().map(e=>`<div class=ev><span class=k style="background:${C[e.to]}">${NAMES[e.to]}</span><div>${esc(e.why)}<div class="small muted">from ${NAMES[e.f]}</div></div><span class="small muted num">${mm(e.t)}</span></div>`).join(''):'<div class=empty>No alerts this session</div>';
+ const s=d.ready?d.state:9;const hc=$('s-status').classList;['s0','s1','s2','s9'].forEach(c=>hc.remove(c));hc.add('s'+s);$('sicon').setAttribute('href','#'+(d.ready?ICON[d.state]:'i-clock'));
+ $('state').textContent=d.ready?NAMES[d.state]:'WARMING UP';$('sub').textContent=d.ready?SUB[d.state]:`Learning the quiet baseline: ${Math.max(0,60-d.t)} s left. Keep the slope still.`;
+ $('warm').style.display=d.ready?'none':'';$('warmf').style.width=Math.min(100,d.t/60*100)+'%';
+ for(let i=0;i<3;i++){$('b'+i).style.width=(d.p[i]*100)+'%';$('b'+i).style.background=C[i];$('bp'+i).textContent=Math.round(d.p[i]*100)+'%'}
+ $('tg_ai').textContent='AI: '+NAMES[d.ai];$('tg_ai').className='tag'+(d.ready?' on':'');$('tg_mv').className='tag'+(d.moving?' on':'');$('tg_rule').className='tag'+(d.rule?' on':'');
+ $('tg_bar').textContent=d.barrier?'Barrier down':'Barrier up';$('tg_bar').className='tag'+(d.barrier?' on':'');
+ $('lr').className='r'+(d.lamps[0]=='R'?' on':'');$('la').className='a'+(d.lamps[1]=='A'?' on':'');$('lg').className='g'+(d.lamps[2]=='G'?' on':'');const R=ROAD[d.road]||[d.road,''];$('roadtxt').innerHTML=`<b>${R[0]}</b>${R[1]}`;
+ // KPI strip
+ $('k_d').innerHTML=d.ready?Math.round(d.p[2]*100)+'<small>%</small>':'-';$('k_db').style.width=(d.ready?d.p[2]*100:0)+'%';
+ $('k_w').innerHTML=d.ready?Math.round(d.p[1]*100)+'<small>%</small>':'-';$('k_wb').style.width=(d.ready?d.p[1]*100:0)+'%';
+ $('k_c').innerHTML=d.cam_now>=0?Math.round(d.cam_now)+'<small>/100</small>':'-';$('k_cx').textContent=d.dev.cam_seen?(d.cam_light?'Light changed, paused':'Feeding the AI'):'Camera offline';
+ $('k_b').textContent=d.barrier?'Down':'Up';$('k_b').style.color=d.barrier?'var(--danger)':'';$('k_bx').textContent=R[0];
+ $('k_t').textContent=clock(d.t);$('k_tx').textContent=`${d.windows} AI checks`;
+ $('k_n').textContent=d.net.home?d.net.ssid.trim():d.net.own_ssid;$('k_nx').textContent=d.net.home?`${d.net.rssi} dBm · ${d.net.clients} on own Wi-Fi`:`Own network · ${d.net.clients} joined`;
+ TILES.forEach((t,i)=>{const v=t[1](d.raw);$('tv'+i).innerHTML=(v==null?'<span class=muted style="font-size:16px">no echo</span>':(+v).toFixed(t[5])+`<small>${t[2]}</small>`);
+  const ai=t[3].length&&d.ready?'AI '+t[3].map(k=>f1(d.x[k])).join(' / '):'';$('tx'+i).textContent=[t[4](d.raw),ai].filter(Boolean).join(' · ')||' ';
+  const h=t[3].some(k=>hot(d,k))||(i==6&&d.raw.us_lost);$('t'+i).className='tile'+(h?' hot':'');
+  const H=hist[i];if(fresh&&v!=null)H.push(+v);if(H.length>120)H.shift();spark($('sp'+i),H,h?C[1]:css('--accent'))});
+ $('sensage').textContent=`Session ${(d.t/60).toFixed(1)} min · ${d.windows} AI checks`;$('aiinfo').textContent=`On-device model · ${d.infer_us} µs per check · every 5 s`;
+ camRender(d);testRender(d.test);netRender(d);cloudRender(d);healthRender(d);headRender(d);if(fresh){alarmCheck(d);notesCheck(d)}
+ $('bm').querySelector('span').textContent=d.muted?'Unmute buzzer':'Mute buzzer';$('bus').querySelector('span').textContent='Ultrasonic: '+(d.raw.us_on?'on':'off');
+ drawAI(d);drawCam(d)}
+// ---------- system health ----------
+function healthRender(d){const n=d.net,rows=[
+ ['Tilt / vibration sensor (MPU-6050)',d.dev.mpu?'ok':'bad',d.dev.mpu?'Reading':'Not found: check wiring'],
+ ['OLED display',d.dev.oled?'ok':'warn',d.dev.oled?'Working':'Not found'],
+ ['Camera link',d.dev.cam_seen?'ok':'bad',d.dev.cam_seen?`${d.dev.cam_ip}`:'Not heard for 10 s'],
+ ['Camera motion score',d.dev.cam_motion?'ok':'warn',d.dev.cam_motion?(d.cam_light?'Paused (light change)':'Feeding the AI'):'Not arriving (AI uses neutral 3)'],
+ ['Ultrasonic',!d.raw.us_on?'warn':d.raw.us_lost?'bad':'ok',!d.raw.us_on?'Switched off':d.raw.us_lost?'Target lost':`${d.raw.echo}/10 echoes`],
+ ['Wi-Fi',n.home?'ok':'warn',n.home?`${esc(n.ssid.trim())} · ${n.rssi} dBm`:'Own network only'],
+ ['AI engine',d.ready?'ok':'warn',d.ready?`${d.infer_us} µs per check`:'Warming up'],
+ ['Buzzer',d.muted?'warn':'ok',d.muted?'Muted':'Armed']];
+ $('health').innerHTML=rows.map(r=>`<div class=row><span class="dot ${r[1]}"></span><span>${r[0]}</span><span class="small muted" style="text-align:right">${r[2]}</span></div>`).join('')}
+// ---------- camera ----------
+function setCam(m){camMode=m;document.querySelectorAll('#camseg button').forEach(b=>b.className=b.dataset.m==m?'on':'');const img=$('camimg');img.className=m=='moved'?'px':'';
+ if(m=='video'){img.src=`http://${location.hostname}:8081/stream`;$('cambadge').textContent='Video stream (uses more data)'}
+ else{img.removeAttribute('src');lastSnap=-1;camBusy=false;camTick()}}
+function camTick(){if(!last||!last.dev.cam_ip||document.hidden||camBusy)return;const img=$('camimg');
+ const load=(url,badge,next)=>{camBusy=true;const t=new Image();t.onload=()=>{if(camMode!==badge.m)return camBusy=false;img.src=t.src;camBusy=false;$('cambadge').textContent=badge.t();setTimeout(camTick,next)};
+  t.onerror=()=>{camBusy=false;if(camMode==badge.m)$('cambadge').textContent='Camera slow or not reachable';setTimeout(camTick,3000)};t.src=url};
+ if(camMode=='live')load(camBase()+'/capture?t='+Date.now(),{m:'live',t:()=>'Live · '+new Date().toLocaleTimeString()},700);
+ else if(camMode=='moved')load(camBase()+'/mask.bmp?t='+Date.now(),{m:'moved',t:()=>'Left: 5 s average · right: what moved'},5000)}
+function camRender(d){const on=!!d.dev.cam_ip&&!!d.dev.cam_seen;$('camoff').style.display=on?'none':'flex';
+ $('camofftxt').textContent=d.dev.cam_ip?'Camera not heard for 10 s':'Camera not heard yet';
+ $('camscore').textContent=d.cam_now>=0?Math.round(d.cam_now):'-';$('camstat').textContent=d.dev.cam_motion?(d.cam_light?'Light changed, score paused':'Motion score feeds the AI'):on?'Connected, no score yet':'Offline';
+ if(camMode=='alert'){if(d.dev.snap_age>=0&&d.dev.snap_seq!==lastSnap){lastSnap=d.dev.snap_seq;$('camimg').src=camBase()+'/last.jpg?t='+Date.now()}
+  $('cambadge').textContent=d.dev.snap_age>=0?`Alert photo · ${d.dev.snap_age} s ago`:'No alert photo yet (taken on Watch / Danger)'}
+ if(on&&!camStarted){camStarted=true;camTick()}}
+// ---------- charts ----------
+// the design height is read once and kept in data-h: c.height is the pixel buffer (height x screen density),
+// so reading the attribute back after the first draw made charts grow 2-3x per update on phones
+function setup(c){if(!c.dataset.h)c.dataset.h=c.getAttribute('height');const w=c.clientWidth,h=+c.dataset.h,dp=devicePixelRatio||1;c.style.height=h+'px';
+ const bw=Math.round(w*dp),bh=Math.round(h*dp);if(c.width!==bw||c.height!==bh){c.width=bw;c.height=bh}const g=c.getContext('2d');g.setTransform(dp,0,0,dp,0,0);g.clearRect(0,0,w,h);return [g,w,h]}
+function spark(c,a,col){const [g,W,H]=setup(c);if(a.length<2)return;let lo=Math.min(...a),hi=Math.max(...a);if(hi-lo<1e-6){lo-=1;hi+=1}
+ const X=i=>i/(119)*W,Y=v=>H-2-(H-4)*(v-lo)/(hi-lo),o=120-a.length;g.strokeStyle=col;g.lineWidth=1.5;g.lineJoin='round';g.beginPath();a.forEach((v,i)=>i?g.lineTo(X(i+o),Y(v)):g.moveTo(X(i+o),Y(v)));g.stroke()}
+function drawAI(d){const c=$('cv'),C=COL(),mu=css('--mute'),ln=css('--line');const [g,W,H]=setup(c),L=34,R=4,T=6,B=34,ph=H-T-B,n=Math.max(d.hs.length,24),X=i=>L+i/(n-1)*(W-L-R),Y=p=>T+ph*(1-p/100);
+ g.font='11px system-ui,sans-serif';g.fillStyle=mu;g.strokeStyle=ln;g.lineWidth=1;for(const p of [0,25,50,75,100]){g.beginPath();g.moveTo(L,Y(p));g.lineTo(W-R,Y(p));g.stroke();if(p%50==0)g.fillText(p+'%',0,Y(p)+4)}
+ const tw=(W-L-R)/n+.6;for(let i=0;i<d.hs.length;i++){g.fillStyle=C[+d.hs[i]];g.fillRect(X(i),H-B+8,tw,7)}
+ g.fillStyle=mu;g.fillText('−'+Math.round((n-1)*5/60)+' min',L,H-3);const nw='now',tw2=g.measureText(nw).width;g.fillText(nw,W-R-tw2,H-3);
+ const line=(a,col)=>{if(!a.length)return;g.strokeStyle=col;g.lineWidth=2;g.lineJoin='round';g.beginPath();a.forEach((v,i)=>i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v)));g.stroke()};line(d.hw,C[1]);line(d.hd,C[2])}
+function drawCam(d){const A=css('--accent'),ln=css('--mute');const [g,W,H]=setup($('cvcam')),n=Math.max(d.hc.length,24),X=i=>i/(n-1)*W,Y=v=>H-2-(H-6)*Math.min(v,100)/100;
+ g.strokeStyle=ln;g.globalAlpha=.5;g.setLineDash([4,4]);g.beginPath();g.moveTo(0,Y(20));g.lineTo(W,Y(20));g.stroke();g.setLineDash([]);g.globalAlpha=1;
+ if(!d.hc.length)return;g.fillStyle=A;g.globalAlpha=.16;g.beginPath();g.moveTo(0,H);d.hc.forEach((v,i)=>g.lineTo(X(i),Y(v)));g.lineTo(X(d.hc.length-1),H);g.fill();g.globalAlpha=1;
+ g.strokeStyle=A;g.lineWidth=2;g.lineJoin='round';g.beginPath();d.hc.forEach((v,i)=>i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v)));g.stroke()}
+// ---------- input test ----------
+function testRender(T){$('bt').textContent=T.on?'Test running…':'Start test';$('bt').className='b pri'+(T.on?' on':'');
+ if(T.on){const s=T.steps[T.i];$('now').style.display='block';$('now').innerHTML=T.done?`<div class=eyebrow>Step ${T.i+1} of ${T.steps.length}</div><b>${s.n}</b><div style="margin-top:4px"><span class="r-${s.r}">${s.r}</span> ${esc(s.info)}</div>`:`<div class=eyebrow>Step ${T.i+1} of ${T.steps.length} · ${T.secs} s</div><b>${s.n}</b><div style="margin-top:4px">${s.how}</div>`}else $('now').style.display='none';
+ $('tst').innerHTML=T.steps.map((s,i)=>`<div class="step${T.on&&i==T.i?' cur':''}"><span class=i>${i+1}</span><div>${s.n}${s.info?`<div class=d>${esc(s.info)}</div>`:''}</div>${s.r=='-'?'<span></span>':`<span class="r-${s.r}">${s.r}</span>`}</div>`).join('')}
+// ---------- network / Wi-Fi ----------
+function netRender(d){const n=d.net;$('ownname').textContent=n.own_ssid;
+ $('netkv').innerHTML=`<span>Own network</span><span><b>${esc(n.own_ssid)}</b> · <a href="http://${n.own_ip}/">${n.own_ip}</a> · ${n.clients} joined</span>`+
+ `<span>Wi-Fi</span><span>${n.home?`<b style="color:var(--safe)">Connected</b> to <b>${esc(n.ssid)}</b> · <a href="http://${n.home_ip}/">${n.home_ip}</a> · ${n.rssi} dBm`:`<b style="color:var(--watch)">Trying</b> <b>${esc(n.ssid)}</b>…`}</span>`+
+ (n.custom?`<span>Saved network</span><span>${esc(n.saved)}${!n.home?' (not reachable right now, still looking)':''}</span>`:'')+
+ (n.fail&&!n.home?`<span>Last attempt</span><span style="color:var(--danger)">${esc(n.fail)}</span>`:'')+
+ `<span>Camera</span><span>${d.dev.cam_ip?`${d.dev.cam_ip} · <a href="${camBase()}/" target=_blank>full camera page</a>`:'not heard'}</span>`+
+ `<span>Radio</span><span>Channel ${n.ch} · <a href="http://slopesense.local/">slopesense.local</a></span>`+
+ `<span>Wi-Fi history</span><span><a href="/netlog" target=_blank>Show the last 16 connection events</a></span>`}
+const bars=r=>{const k=r>-60?4:r>-70?3:r>-80?2:1;return `<span class=sig>${[5,8,11,14].map((h,i)=>`<i style="height:${h}px" class="${i<k?'on':''}"></i>`).join('')}</span>`};
+async function scan(){$('nets').innerHTML='<div class="muted small">Scanning… (the camera may drop off for a moment)</div>';try{await fetch('/wifiscan?start=1');
+ for(let k=0;k<20;k++){await new Promise(r=>setTimeout(r,800));const j=await (await fetch('/wifiscan')).json();if(!j.busy){
+  scanned=j.nets.map(n=>n.s);$('nets').innerHTML=j.nets.length?j.nets.sort((a,b)=>b.r-a.r).map(n=>`<button data-s="${esc(n.s)}"><span>${esc(n.s.trim())}${n.s!==n.s.trim()?' <span class="muted small">(name ends with a space)</span>':''}</span><span class="muted small" style="display:inline-flex;align-items:center;gap:8px">${n.o?'open':ic('i-lock')}${bars(n.r)}</span></button>`).join(''):'<div class="muted small">No networks found</div>';
+  document.querySelectorAll('#nets button').forEach(b=>b.onclick=()=>{$('ssid').value=b.dataset.s;$('pass').focus()});return}}}catch(e){$('nets').innerHTML='<div class="muted small">Scan failed, try again</div>'}}
+let scanned=[];
+async function saveWifi(){let s=$('ssid').value;const p=$('pass').value;if(!s.trim())return toast('Enter the network name');
+ const m=scanned.find(x=>x.trim().toLowerCase()===s.trim().toLowerCase());if(m)s=m;$('ssid').value=s;
+ if(p&&p.length<8)return toast('Wi-Fi passwords are at least 8 characters');
+ const onHome=last&&location.hostname===last.net.home_ip;
+ if(!confirm(`Join "${s}"?`+(onHome?`\n\nThis page is open through ${last.net.ssid}, so it will disconnect. Then open it on the new network, or join "${last.net.own_ssid}" and go to http://${last.net.own_ip}/`:'')))return;
+ try{const r=await fetch('/wifi',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'ssid='+encodeURIComponent(s)+'&pass='+encodeURIComponent(p)});
+ toast(r.ok?`Saved. Joining ${s.trim()}… the own network keeps working`:'Not saved: '+await r.text());$('pass').value=''}catch(e){toast('Saved; the connection changed. Reopen the page on the new network.')}}
+async function forgetWifi(){if(!confirm('Forget the saved network? SlopeSense then runs only its own network (192.168.4.1) until you save another one.'))return;await fetch('/wifi',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'forget=1'}).catch(()=>0);toast('Network forgotten: own network only')}
+function cloudRender(d){const c=d.cloud;if(!c||!$('cloudkv'))return;
+ $('cloudkv').innerHTML=`<span>Status</span><span>${!c.on?'<b>Off</b>':c.st=='connected'?'<b style="color:var(--safe)">Connected</b>'+(c.viewer?' · someone is watching':''):`<b style="color:var(--watch)">${esc(c.st)}</b>`}</span>`+
+ (c.on?`<span>Broker</span><span>${esc(c.host)} · ${esc(c.user)}</span><span>Board ID</span><span><b>${esc(c.id)}</b></span>`:'');
+ if(!$('ch').value&&c.host&&document.activeElement!==$('ch')){$('ch').value=c.host;$('cu').value=c.user}}
+async function saveCloud(off){const h=off?'':$('ch').value.trim(),u=$('cu').value.trim(),p=$('cp').value;
+ if(!off&&(!h||!u))return toast('Enter the broker address and username');if(off&&!confirm('Turn the cloud link off?'))return;
+ try{const r=await fetch('/cloud',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'host='+encodeURIComponent(h)+'&user='+encodeURIComponent(u)+'&pass='+encodeURIComponent(p)});
+ toast(r.ok?(off?'Cloud link off':'Saved. Connecting to the cloud…'):'Not saved: '+await r.text());$('cp').value='';if(off){$('ch').value='';$('cu').value=''}}catch(e){toast('SlopeSense not reachable')}}
+function usToggle(){const on=last&&last.raw.us_on;fetch('/cmd?cal=us_on&v='+(on?0:1)).then(()=>toast(on?'Ultrasonic off: ignored by the AI':'Ultrasonic on: restart the session to set its zero'))}
+function togglePw(){const p=$('pass'),show=p.type=='password';p.type=show?'text':'password';$('pwb').textContent=show?'Hide':'Show'}
+// highlight the section on screen in the nav bars
+const SEC={'s-status':0,'s-ai':0,'s-camera':1,'s-sensors':2,'s-health':2,'s-log':2,'s-test':3,'s-settings':4},TOP=['s-status','s-camera','s-sensors','s-health','s-test','s-settings'];
+if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const id=e.target.id;
+ document.querySelectorAll('#tnav a').forEach(a=>a.classList.toggle('act',a.hash=='#'+(id=='s-ai'?'s-status':id=='s-log'?'s-health':id)))}),{rootMargin:'-45% 0px -50% 0px'});
+ Object.keys(SEC).forEach(k=>$(k)&&io.observe($(k)))}
+// ---------- phone screens (bottom tabs) ----------
+const TABS=['overview','camera','sensors','test','settings'];
+function showTab(){let k=TABS.indexOf(location.hash.slice(1));if(k<0)k=0;
+ document.querySelectorAll('.pg').forEach(e=>e.classList.toggle('cur',e.classList.contains('t'+k)));
+ document.querySelectorAll('#tabs a').forEach((a,i)=>a.classList.toggle('act',i==k));if(innerWidth<1000)scrollTo(0,0);if(last)setTimeout(()=>render(last),0)}
+addEventListener('hashchange',showTab);showTab();
+// ---------- phone alarm (vibrate + beep + full-screen warning on DANGER) ----------
+let actx=null,armed=false,acked=-1,prevState=-1,beepT=null;
+try{armed=localStorage.getItem('alarm')=='1'}catch(e){}
+const AC=window.AudioContext||window.webkitAudioContext;
+function unlock(){if(!armed||!AC)return;try{actx=actx||new AC();actx.resume()}catch(e){}palUI()}
+document.addEventListener('pointerdown',unlock);
+function armAlarm(){armed=!armed;if(armed)unlock();try{localStorage.setItem('alarm',armed?'1':'0')}catch(e){}palUI();
+ if(armed){beep(880,.15);navigator.vibrate&&navigator.vibrate(200);toast('Phone alarm on. Keep this page open.')}}
+function palUI(){$('palb').textContent=armed?'Turn off':'Turn on';$('palb').className='b'+(armed?'':' pri');
+ $('paltxt').textContent=armed?(actx?'On: vibrates and sounds on DANGER. Keep this page open with the screen on.':'On. Tap anywhere once to allow sound.'):'Vibrate and sound on this phone when the slope is in danger'}
+function beep(f,len){if(!actx)return;const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;o.type='square';g.gain.value=.15;o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+len)}
+function ack(){acked=last?last.windows:0;$('alarm').className='';clearInterval(beepT);beepT=null;navigator.vibrate&&navigator.vibrate(0)}
+function alarmCheck(d){const st=d.ready?d.state:-1;
+ if(st==2&&acked<0){$('alarm').className='on';const ev=d.events||[],le=ev[ev.length-1];$('alwhy').textContent=le?'Cause: '+le.why:'';
+  if(armed&&!beepT){const ring=()=>{beep(960,.25);setTimeout(()=>beep(720,.25),300);navigator.vibrate&&navigator.vibrate([400,150,400])};ring();beepT=setInterval(ring,2000)}}
+ if(st!=2){acked=-1;if($('alarm').className)ack();acked=-1}
+ prevState=st}  // Watch sound comes from its notification
+function headRender(d){const s=d.ready?d.state:9;$('hstate').className='chip hs s'+s;$('hstxt').textContent=d.ready?NAMES[d.state]:'WARM-UP';
+ document.title=(d.ready&&d.state?(d.state==2?'⚠ DANGER':'WATCH')+' · ':'')+'SlopeSense';$('tcol').content=d.ready&&d.state==2?'#c62828':css('--bg')}
+// ---------- notifications (bell, banner, sound, phone pop-ups) ----------
+// The SlopeSense unit keeps the last 20 events; this phone keeps up to 60 in localStorage so nothing is lost across reboots.
+const LV=[['Info','i-bell','--accent'],['Recovered','i-ok','--safe'],['Watch','i-warn','--watch'],['Danger','i-stop','--danger'],['Fault','i-chip','--fault']];
+let NS={b:0,last:0,list:[]},nPrefs={w:1,o:1,f:1},nBusy=false,swReg=null;
+try{NS=Object.assign(NS,JSON.parse(localStorage.getItem('notes')||'{}'));nPrefs=Object.assign(nPrefs,JSON.parse(localStorage.getItem('nprefs')||'{}'))}catch(e){}
+const nSave=()=>{try{localStorage.setItem('notes',JSON.stringify(NS))}catch(e){}};
+async function notesCheck(d){if(nBusy||d.nb==null||(d.nb==NS.b&&d.nid<=NS.last))return;nBusy=true;
+ try{const same=d.nb==NS.b,j=await (await fetch(`/notes?b=${NS.b}&since=${same?NS.last:0}`,{cache:'no-store'})).json(),now=Date.now();
+  const have=new Set(NS.list.map(n=>n.k));
+  const add=j.notes.map(n=>({k:j.b+'.'+n.id,ts:now-(j.up-n.at)*1000,lv:n.lv,ti:n.ti,bo:n.bo,r:0})).filter(n=>!have.has(n.k));
+  NS.last=j.notes.length?Math.max(...j.notes.map(n=>n.id)):(j.b==NS.b?NS.last:0);NS.b=j.b;
+  NS.list=add.slice().reverse().concat(NS.list).slice(0,60);nSave();nRender();
+  add.filter(n=>n.ts>now-120000).forEach(nPop)}  // older ones (from before the page was open) go to the list quietly
+ catch(e){}nBusy=false}
+const nWant=lv=>lv==3||(lv==2&&nPrefs.w)||(lv==1&&nPrefs.o)||((lv==4||lv==0)&&nPrefs.f);
+function nPop(n){if(!nWant(n.lv))return;const L=LV[n.lv]||LV[0],b=$('nbanner');
+ b.style.borderLeftColor=css(L[2]);$('nbi').innerHTML=`<use href="#${L[1]}"/>`;$('nbi').style.color=css(L[2]);$('nbt').textContent=n.ti;$('nbb').textContent=n.bo;
+ b.className='on';clearTimeout(b._t);b._t=setTimeout(()=>b.className='',n.lv==3?12000:7000);
+ if(armed&&n.lv!=3){const f={0:[520],1:[880],2:[660,660],4:[440,330]}[n.lv]||[600];f.forEach((x,i)=>setTimeout(()=>beep(x,.18),i*260));navigator.vibrate&&navigator.vibrate(n.lv==2?[300,120,300]:200)}
+ if(swReg&&'Notification' in window&&Notification.permission=='granted')
+  swReg.showNotification(n.ti,{body:n.bo,tag:n.k,icon:'icon.svg',badge:'icon.svg',renotify:true,requireInteraction:n.lv==3,vibrate:n.lv==3?[400,150,400,150,400]:[200]}).catch(()=>0)}
+const when=ts=>{const d=new Date(ts),s=(Date.now()-ts)/1000,t=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+ const ago=s<60?'just now':s<3600?Math.floor(s/60)+' min ago':s<86400?Math.floor(s/3600)+' h ago':d.toLocaleDateString();return `${t} · ${ago}`};
+function nRender(){const u=NS.list.filter(n=>!n.r).length,bd=$('nbadge');bd.textContent=u>9?'9+':u;bd.className='nbadge num'+(u?' on':'');
+ $('bellb').setAttribute('aria-label',u?`Notifications, ${u} unread`:'Notifications');
+ $('nlist').innerHTML=NS.list.length?NS.list.map(n=>{const L=LV[n.lv]||LV[0];return `<div class="nt${n.r?'':' unread'}"><span class=ni style="background:var(${L[2]})">${ic(L[1])}</span><div style="min-width:0"><b>${esc(n.ti)}</b><p>${esc(n.bo)}</p><span class=tm>${L[0]} · ${when(n.ts)}</span></div></div>`}).join(''):'<div class=empty>No notifications yet</div>'}
+function notesOpen(){nRender();$('npanel').className='on';$('nshade').className='on';$('nbanner').className='';NS.list.forEach(n=>n.r=1);nSave();
+ const bd=$('nbadge');bd.className='nbadge num';$('bellb').setAttribute('aria-label','Notifications')}
+function notesClose(){$('npanel').className='';$('nshade').className='';nRender()}
+function notesClear(){if(!NS.list.length||!confirm('Clear all notifications on this phone?'))return;NS.list=[];nSave();nRender()}
+addEventListener('keydown',e=>{if(e.key=='Escape')notesClose()});
+function nPref(){nPrefs={w:+$('np_w').checked,o:+$('np_o').checked,f:+$('np_f').checked};try{localStorage.setItem('nprefs',JSON.stringify(nPrefs))}catch(e){}}
+function nTest(){cmd('n')}
+// pop-ups outside the browser tab need a secure page (https, or allowed in Chrome's settings) and a service worker
+async function nSysInit(){const ok=window.isSecureContext&&'serviceWorker' in navigator&&'Notification' in window;
+ if(ok){try{swReg=await navigator.serviceWorker.register('sw.js')}catch(e){}}nSysUI()}
+function nSysUI(){const ok=!!swReg,p=ok?Notification.permission:'';const b=$('nsysb');
+ b.style.display=ok&&p!='granted'?'':'none';
+ $('nsysnote').innerHTML=ok?(p=='granted'?'<b>Phone pop-ups are on.</b> Alerts also appear in the notification shade while this page is open in the background.':p=='denied'?'Phone pop-ups are blocked for this page. Allow notifications for it in the browser\'s site settings.':'Tap the button to also get alerts in the phone\'s notification shade.')
+  :`Pop-ups in the phone's notification shade need a secure page, and this one is plain <b>http</b>. Banners, sound and vibration above still work while this page is open.<br><br><b>Optional, Android Chrome:</b> open <b>chrome://flags</b>, search <b>Insecure origins treated as secure</b>, add <b>${esc(location.origin)}</b>, enable it, relaunch, then come back here.`}
+async function nSysAsk(){if(!swReg)return;try{await Notification.requestPermission()}catch(e){}nSysUI();if(Notification.permission=='granted')toast('Phone pop-ups on')}
+$('np_w').checked=!!nPrefs.w;$('np_o').checked=!!nPrefs.o;$('np_f').checked=!!nPrefs.f;nRender();nSysInit();
+setInterval(()=>{if($('npanel').className)nRender()},30000);  // keep "x min ago" fresh
+palUI();
+addEventListener('resize',()=>{if(last)render(last)});init();
+</script><script>
+// camera pictures only travel on the local network; the motion score still arrives through the cloud
+camTick=function(){};
+camRender=function(d){$('camoff').style.display='flex';$('camofftxt').textContent='Camera picture: local network only. Motion score: '+(d.dev.cam_motion?d.raw.cam.toFixed(1)+' / 100':'not arriving')};
+</script></body></html>
