@@ -192,7 +192,7 @@ function connect(){
  client=mqtt.connect(url,{username:cfg.user,password:cfg.pass,clientId:'view-'+Math.random().toString(16).slice(2,10),reconnectPeriod:4000,connectTimeout:10000,clean:true});
  client.on('connect',()=>{setErr('');document.getElementById('csetup')?.classList.remove('show');
   client.subscribe(id?'slopesense/'+id+'/#':'slopesense/+/#');hello();clearInterval(helloT);helloT=setInterval(hello,20000)});
- client.on('error',e=>{setErr(/auth|Not authorized|bad user/i.test(e.message)?'Wrong username or password':'Cannot reach the broker: '+e.message)});
+ client.on('error',e=>{setErr(/auth|Not authorized|bad user/i.test(e.message)?'Login refused: check the Cluster URL is your own (Overview tab in HiveMQ) and the username and password match Access Management':'Cannot reach the broker: '+e.message)});
  client.on('message',(t,m)=>{const p=t.split('/');if(p[0]!=='slopesense'||p.length<3)return;
   if(!id){id=p[1];client.unsubscribe('slopesense/+/#');client.subscribe(base()+'#');hello()}
   if(p[1]!==id)return;const k=p[2],s=m.toString();
