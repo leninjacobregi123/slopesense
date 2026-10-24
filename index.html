@@ -282,7 +282,6 @@ document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('c
 </div></header>
 
 <main>
-<div id="mockbar" style="display:none;background:var(--watch);color:#000;font-weight:700;padding:10px 14px;border-radius:12px;margin:0 0 12px">MOCK DATA: a simulated landslide is playing, not the real slope. <span id="mockt"></span> <button class="b" style="margin-left:8px" onclick="if(confirm('Stop the mock and go back to the real sensors?'))cmd('j')">Stop mock</button></div>
 <section class="card hero s9 pg t0" id="s-status">
 <div class="in">
  <div class="st"><div class="sico"><svg><use id="sicon" href="#i-clock"/></svg></div>
@@ -389,7 +388,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('c
 <div class="note" id="nsysnote"></div>
 </div></details>
 <details open><summary><svg class="i"><use href="#i-gear"/></svg>Controls</summary><div>
-<div class="btns"><button class="b" id="bm" onclick="cmd('m')"><svg class="i"><use href="#i-bell"/></svg><span>Mute buzzer</span></button><button class="b" onclick="if(confirm('Restart the session? The AI warms up again for 60 s.'))cmd('z')"><svg class="i"><use href="#i-redo"/></svg>Restart session</button><button class="b" id="bmock" onclick="mockToggle()">Start mock landslide</button></div>
+<div class="btns"><button class="b" id="bm" onclick="cmd('m')"><svg class="i"><use href="#i-bell"/></svg><span>Mute buzzer</span></button><button class="b" onclick="if(confirm('Restart the session? The AI warms up again for 60 s.'))cmd('z')"><svg class="i"><use href="#i-redo"/></svg>Restart session</button></div>
 <div class="eyebrow" style="margin-top:14px">Sensors fitted</div><div class="btns" id="fitb"></div>
 <div class="note">Switch a sensor to "not fitted" while it is not wired: its empty pin reads random noise, which the AI would take as wet soil or rain. Not fitted = the AI gets a steady normal value.</div>
 <div class="note">Both ultrasonics now watch the road gates (see Road gates), so the AI gets a neutral value for slope distance.<br>Restart after moving sensors: the first 30 s set the zero for tilt (unless it is locked) and the rain cup.</div>
@@ -416,7 +415,7 @@ try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.
 function theme(){const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme=='dark':!matchMedia('(prefers-color-scheme: light)').matches;r.dataset.theme=dark?'light':'dark';
  try{localStorage.setItem('theme',r.dataset.theme)}catch(e){}if(last)render(last)}
 function toast(t){const e=$('toast');e.textContent=t;e.className='show';clearTimeout(e._t);e._t=setTimeout(()=>e.className='',2600)}
-function cmd(c){fetch('/cmd?c='+c).then(()=>toast({t:'Input test started',s:'Step skipped',y:'Confirmed',x:'Test stopped',m:'Buzzer toggled',z:'Session restarted',n:'Test sent: it arrives within a second',k:'Mock landslide started',q:'Quick danger demo started',j:'Mock stopped: real sensors',L:'Tilt locked: this position is now 0°',u:'Tilt unlocked'}[c]||'OK')).catch(()=>toast('SlopeSense not reachable'))}
+function cmd(c){fetch('/cmd?c='+c).then(()=>toast({t:'Input test started',s:'Step skipped',y:'Confirmed',x:'Test stopped',m:'Buzzer toggled',z:'Session restarted',n:'Test sent: it arrives within a second',L:'Tilt locked: this position is now 0°',u:'Tilt unlocked'}[c]||'OK')).catch(()=>toast('SlopeSense not reachable'))}
 const f1=v=>Math.abs(v)>=100?v.toFixed(0):Math.abs(v)>=10?v.toFixed(1):v.toFixed(2);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ic=n=>`<svg class="i"><use href="#${n}"/></svg>`;
@@ -461,8 +460,6 @@ function render(d){const fresh=d!==last;last=d;const C=COL();
  $('sensage').textContent=`Session ${(d.t/60).toFixed(1)} min · ${d.windows} AI checks`;$('aiinfo').textContent=`On-device model · ${d.infer_us} µs per check · every 5 s`;
  gatesRender(d);tiltRender(d);camRender(d);testRender(d.test);netRender(d);cloudRender(d);healthRender(d);headRender(d);if(fresh){alarmCheck(d);notesCheck(d)}
  $('bm').querySelector('span').textContent=d.muted?'Unmute buzzer':'Mute buzzer';
- if(d.mock){$('mockbar').style.display=d.mock.on?'block':'none';$('bmock').textContent=d.mock.on?'Stop mock landslide':'Start mock landslide';
-  if(d.mock.on){const left=d.mock.fail-d.mock.t;$('mockt').textContent=left>0?`Simulated slide in ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'Simulated slope has failed'}}
  if(d.raw.fit){const F=[['soil_on','Soil sensors'],['rain_on','Rain board'],['water_on','Rain cup'],['sw_on','SW-420 shock']],h=F.map((f,i)=>`<button class="b${d.raw.fit[i]=='1'?'':' warn'}" onclick="fitToggle('${f[0]}',${d.raw.fit[i]=='1'?0:1})">${f[1]}: ${d.raw.fit[i]=='1'?'fitted':'not fitted'}</button>`).join('');if($('fitb').innerHTML!==h)$('fitb').innerHTML=h}
  drawAI(d);drawCam(d)}
 // ---------- road gates ----------
@@ -569,7 +566,6 @@ async function saveCloud(off){const h=off?'':$('ch').value.trim(),u=$('cu').valu
  if(!off&&(!h||!u))return toast('Enter the broker address and username');if(off&&!confirm('Turn the cloud link off?'))return;
  try{const r=await fetch('/cloud',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'host='+encodeURIComponent(h)+'&user='+encodeURIComponent(u)+'&pass='+encodeURIComponent(p)});
  toast(r.ok?(off?'Cloud link off':'Saved. Connecting to the cloud…'):'Not saved: '+await r.text());$('cp').value='';if(off){$('ch').value='';$('cu').value=''}}catch(e){toast('SlopeSense not reachable')}}
-function mockToggle(){const on=last&&last.mock&&last.mock.on;if(!on&&!confirm('Play a SIMULATED landslide? The AI, lamps, buzzer and barriers react for real; the sensors are ignored until you stop it (about 7 min to the slide).'))return;cmd(on?'j':'k')}
 function fitToggle(k,v){fetch('/cmd?cal='+k+'&v='+v).then(()=>toast(v?'Marked fitted: restart the session once it is wired':'Marked not fitted: the AI ignores it'))}
 function usToggle(){const on=last&&last.raw.us_on;fetch('/cmd?cal=us_on&v='+(on?0:1)).then(()=>toast(on?'Ultrasonic off: ignored by the AI':'Ultrasonic on: restart the session to set its zero'))}
 function togglePw(){const p=$('pass'),show=p.type=='password';p.type=show?'text':'password';$('pwb').textContent=show?'Hide':'Show'}
