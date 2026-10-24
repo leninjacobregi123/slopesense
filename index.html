@@ -467,7 +467,7 @@ function render(d){const fresh=d!==last;last=d;const C=COL();
  drawAI(d);drawCam(d)}
 // ---------- road gates ----------
 function gatesRender(d){const g=d.gate;if(!g)return;const danger=d.ready&&d.state==2&&d.barrier,cm=v=>v>0?`${Math.round(v)} cm`:'no echo';
- const G=[['Right · road side',g.r?(danger?'Vehicle at gate':'Something at the gate'):'Road clear',g.r_echo?`nearest ${cm(g.r_cm)} · alarm under ${g.r_lim} cm`:'Sensor not answering',g.r&&danger?'alert':''],
+ const G=[['Right · road side',g.r?(danger?'Vehicle at gate':'Something at the gate'):'Road clear',g.r_echo?(g.r_base>0?`now ${cm(g.r_cm)} · empty road ${g.r_base} cm · alarm under ${g.r_lim} cm`:`now ${cm(g.r_cm)} · learning the empty road…`):'Sensor not answering',g.r&&danger?'alert':''],
  ['Left · inside the zone',g.l?(danger?'Person inside':'Something in front'):'Zone clear',g.l_echo?`nearest ${cm(g.l_cm)} · alarm under ${g.l_lim} cm`:'Sensor not answering',g.l&&danger?'go':''],
  ['Gate A',g.a=='escape'?`Open for escape${g.esc_s&&!g.l?' · closes in '+g.esc_s+' s':''}`:g.a=='closed'?'Closed':'Open',g.a=='escape'?'Exit only':g.a=='closed'?'Road closed':'Traffic flowing',g.a=='escape'?'go':g.a=='closed'?'alert':''],
  ['Gate B',g.b=='closed'?'Closed':'Open',g.b=='closed'?'Road closed':'Traffic flowing',g.b=='closed'?'alert':'']];
