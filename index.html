@@ -106,6 +106,12 @@ canvas{width:100%;display:block}
 .tile.hot .n{color:var(--watch)}
 /* ---- lists ---- */
 .rows{display:grid}.row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.row:last-child{border-bottom:0}
+.gates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.gs{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.gs .n{font-size:12px;color:var(--mute);display:flex;gap:6px;align-items:center}
+.gs .v{font-size:17px;font-weight:700;margin-top:4px}.gs .x{font-size:12px;color:var(--mute);margin-top:2px}.gs.alert{border-color:var(--danger)}.gs.alert .v{color:var(--danger)}.gs.go{border-color:var(--watch)}.gs.go .v{color:var(--watch)}
+.gline{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--s3);font-size:13px;font-weight:600}
+.tiltw{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}.tiltw svg.lvl{width:132px;height:132px}
+.tbig{font-size:32px;font-weight:750;line-height:1.1}.tbig small{font-size:14px;font-weight:600;color:var(--mute);margin-left:4px}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--mute)}.dot.ok{background:var(--safe)}.dot.warn{background:var(--watch)}.dot.bad{background:var(--danger)}
 .row .d,.step .d{font-size:12px;color:var(--mute)}
 .ev{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 0;border-bottom:1px solid var(--line)}.ev:last-child{border-bottom:0}
@@ -327,6 +333,21 @@ document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('c
 <div class="cb"><div class="tiles" id="tiles"></div>
 <div class="note">An orange edge means the reading is far from the quiet baseline the AI learned. Values under each reading are what the AI sees. Tilt 2 and vibration 2 copy the single MPU-6050.</div></div></section>
 
+<section class="card c6 pg t0" id="s-gates">
+<div class="ch"><svg class="i"><use href="#i-road"/></svg><h2>Road gates<small id="gatesub">Ultrasonic watch at both ends</small></h2></div>
+<div class="cb"><div class="gates" id="gates"></div><div class="gline" id="gline">-</div>
+<div class="note">During DANGER: someone inside the zone (left sensor) opens gate A to get out; it closes 7 s after they pass. A vehicle at the road gate (right sensor) keeps the gates locked and is told to turn back.</div></div></section>
+
+<section class="card c6 pg t0" id="s-tilt">
+<div class="ch"><svg class="i"><use href="#i-tilt"/></svg><h2>Slope tilt<small id="tiltsub">-</small></h2></div>
+<div class="cb"><div class="tiltw"><svg class="lvl" viewBox="-60 -60 120 120" aria-label="Bubble level">
+<circle r="56" fill="var(--s2)" stroke="var(--line)" stroke-width="2"/><circle r="40" fill="none" stroke="var(--line)" stroke-dasharray="3 4"/><circle r="16" fill="none" stroke="var(--line)"/>
+<line x1="-56" y1="0" x2="56" y2="0" stroke="var(--line)"/><line x1="0" y1="-56" x2="0" y2="56" stroke="var(--line)"/><circle id="bub" r="9" fill="var(--accent)"/></svg>
+<div style="min-width:0"><div class="tbig num" id="tdeg">-</div><div class="small muted" id="tfrom">-</div><div style="margin-top:8px;font-weight:700" id="tstat">-</div>
+<div class="small muted num" id="trp">-</div></div></div>
+<div class="btns" style="margin-top:14px"><button class="b pri" id="tlock" onclick="tiltLock()"><svg class="i"><use href="#i-lock"/></svg>Lock this position</button><button class="b" id="tunlock" onclick="tiltUnlock()">Unlock</button></div>
+<div class="note">Set up the slope, then press Lock: that position becomes 0°. Any later tilt away from it goes to the AI, also after a restart. Inner ring 2°, dashed ring 5°.</div></div></section>
+
 <section class="card pg t0 phonly" id="s-phone"><div class="cb" style="display:flex;gap:12px;align-items:center"><svg class="i" style="width:22px;height:22px;color:var(--accent)"><use href="#i-bell"/></svg>
 <div style="flex:1;min-width:0"><b style="font-size:14px">Phone alarm</b><div class="small muted" id="paltxt">Vibrate and sound on this phone when the slope is in danger</div></div><button class="b pri" id="palb" onclick="armAlarm()">Turn on</button></div></section>
 <section class="card pg t0" id="s-log">
@@ -368,10 +389,10 @@ document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('c
 <div class="note" id="nsysnote"></div>
 </div></details>
 <details open><summary><svg class="i"><use href="#i-gear"/></svg>Controls</summary><div>
-<div class="btns"><button class="b" id="bm" onclick="cmd('m')"><svg class="i"><use href="#i-bell"/></svg><span>Mute buzzer</span></button><button class="b" id="bus" onclick="usToggle()"><svg class="i"><use href="#i-ruler"/></svg><span>Ultrasonic: on</span></button><button class="b" onclick="if(confirm('Restart the session? The AI warms up again for 60 s.'))cmd('z')"><svg class="i"><use href="#i-redo"/></svg>Restart session</button><button class="b" id="bmock" onclick="mockToggle()">Start mock landslide</button></div>
+<div class="btns"><button class="b" id="bm" onclick="cmd('m')"><svg class="i"><use href="#i-bell"/></svg><span>Mute buzzer</span></button><button class="b" onclick="if(confirm('Restart the session? The AI warms up again for 60 s.'))cmd('z')"><svg class="i"><use href="#i-redo"/></svg>Restart session</button><button class="b" id="bmock" onclick="mockToggle()">Start mock landslide</button></div>
 <div class="eyebrow" style="margin-top:14px">Sensors fitted</div><div class="btns" id="fitb"></div>
 <div class="note">Switch a sensor to "not fitted" while it is not wired: its empty pin reads random noise, which the AI would take as wet soil or rain. Not fitted = the AI gets a steady normal value.</div>
-<div class="note">Ultrasonic off: the AI and the "surface moved" rule ignore it. Keep it off until the sensor is aimed at a fixed target on the slope, then switch it on and restart the session.<br>Restart after moving sensors: the first 30 s set the zero for tilt, distance and rain cup.</div>
+<div class="note">Both ultrasonics now watch the road gates (see Road gates), so the AI gets a neutral value for slope distance.<br>Restart after moving sensors: the first 30 s set the zero for tilt (unless it is locked) and the rain cup.</div>
 </div></details>
 </div></section>
 <footer>SlopeSense cloud view · on-device AI · watch-only view through the cloud · controls on the local dashboard · <a href="#" onclick="cloudSetup();return false">private broker</a></footer>
@@ -395,7 +416,7 @@ try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.
 function theme(){const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme=='dark':!matchMedia('(prefers-color-scheme: light)').matches;r.dataset.theme=dark?'light':'dark';
  try{localStorage.setItem('theme',r.dataset.theme)}catch(e){}if(last)render(last)}
 function toast(t){const e=$('toast');e.textContent=t;e.className='show';clearTimeout(e._t);e._t=setTimeout(()=>e.className='',2600)}
-function cmd(c){fetch('/cmd?c='+c).then(()=>toast({t:'Input test started',s:'Step skipped',y:'Confirmed',x:'Test stopped',m:'Buzzer toggled',z:'Session restarted',n:'Test sent: it arrives within a second',k:'Mock landslide started',q:'Quick danger demo started',j:'Mock stopped: real sensors'}[c]||'OK')).catch(()=>toast('SlopeSense not reachable'))}
+function cmd(c){fetch('/cmd?c='+c).then(()=>toast({t:'Input test started',s:'Step skipped',y:'Confirmed',x:'Test stopped',m:'Buzzer toggled',z:'Session restarted',n:'Test sent: it arrives within a second',k:'Mock landslide started',q:'Quick danger demo started',j:'Mock stopped: real sensors',L:'Tilt locked: this position is now 0°',u:'Tilt unlocked'}[c]||'OK')).catch(()=>toast('SlopeSense not reachable'))}
 const f1=v=>Math.abs(v)>=100?v.toFixed(0):Math.abs(v)>=10?v.toFixed(1):v.toFixed(2);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ic=n=>`<svg class="i"><use href="#${n}"/></svg>`;
@@ -403,7 +424,7 @@ const ic=n=>`<svg class="i"><use href="#${n}"/></svg>`;
 const TILES=[["Soil moisture 1",r=>r.soil1_pct,"%",[0,2],r=>`raw ${r.soil1}`,0,'i-drop'],["Soil moisture 2",r=>r.soil2_pct,"%",[1,3],r=>`raw ${r.soil2}`,0,'i-drop'],
 ["Rain board",r=>r.wet*100,"% wet",[4],r=>`raw ${r.rain}`,0,'i-rain'],["Rain cup",r=>r.rain_mm,"mm",[5,6],r=>`raw ${r.water}`,1,'i-rain'],
 ["Tilt",r=>r.tilt,"°",[7,8],r=>`${r.g} g`,2,'i-tilt'],["Vibration",r=>r.vib_mg,"mg",[11],r=>`peak ${r.vib_peak} mg`,1,'i-wave'],
-["Surface distance",r=>r.dist_mm>0?r.dist_mm/10:null,"cm",[13,14],r=>!r.us_on?'Switched off in settings':r.us_lost?'Target lost: ignored by the AI':`${r.echo}/10 echoes`,1,'i-ruler'],["Camera motion",r=>r.cam,"/100",[15],r=>'Neutral 3 when no camera',0,'i-cam'],["SW-420 shock",r=>r.sw420,"/s",[],r=>`total ${r.sw420_total}`,0,'i-wave']];
+["Camera motion",r=>r.cam,"/100",[15],r=>'Neutral 3 when no camera',0,'i-cam'],["SW-420 shock",r=>r.sw420,"/s",[],r=>`total ${r.sw420_total}`,0,'i-wave']];
 const hist=TILES.map(()=>[]);
 async function init(){try{meta=await (await fetch('/meta')).json()}catch(e){return setTimeout(init,1500)}
  $('probs').innerHTML=NAMES.map((n,i)=>`<div class=prob><span>${n[0]+n.slice(1).toLowerCase()}</span><div class=track><div class=fill id=b${i} style="width:0"></div></div><span id=bp${i} class=num>0%</span></div>`).join('');
@@ -435,22 +456,49 @@ function render(d){const fresh=d!==last;last=d;const C=COL();
  $('k_n').textContent=d.net.home?d.net.ssid.trim():d.net.own_ssid;$('k_nx').textContent=d.net.home?`${d.net.rssi} dBm · ${d.net.clients} on own Wi-Fi`:`Own network · ${d.net.clients} joined`;
  TILES.forEach((t,i)=>{const v=t[1](d.raw);$('tv'+i).innerHTML=(v==null?'<span class=muted style="font-size:16px">no echo</span>':(+v).toFixed(t[5])+`<small>${t[2]}</small>`);
   const ai=t[3].length&&d.ready?'AI '+t[3].map(k=>f1(d.x[k])).join(' / '):'';$('tx'+i).textContent=[t[4](d.raw),ai].filter(Boolean).join(' · ')||' ';
-  const h=t[3].some(k=>hot(d,k))||(i==6&&d.raw.us_lost);$('t'+i).className='tile'+(h?' hot':'');
+  const h=t[3].some(k=>hot(d,k));$('t'+i).className='tile'+(h?' hot':'');
   const H=hist[i];if(fresh&&v!=null)H.push(+v);if(H.length>120)H.shift();spark($('sp'+i),H,h?C[1]:css('--accent'))});
  $('sensage').textContent=`Session ${(d.t/60).toFixed(1)} min · ${d.windows} AI checks`;$('aiinfo').textContent=`On-device model · ${d.infer_us} µs per check · every 5 s`;
- camRender(d);testRender(d.test);netRender(d);cloudRender(d);healthRender(d);headRender(d);if(fresh){alarmCheck(d);notesCheck(d)}
- $('bm').querySelector('span').textContent=d.muted?'Unmute buzzer':'Mute buzzer';$('bus').querySelector('span').textContent='Ultrasonic: '+(d.raw.us_on?'on':'off');
+ gatesRender(d);tiltRender(d);camRender(d);testRender(d.test);netRender(d);cloudRender(d);healthRender(d);headRender(d);if(fresh){alarmCheck(d);notesCheck(d)}
+ $('bm').querySelector('span').textContent=d.muted?'Unmute buzzer':'Mute buzzer';
  if(d.mock){$('mockbar').style.display=d.mock.on?'block':'none';$('bmock').textContent=d.mock.on?'Stop mock landslide':'Start mock landslide';
   if(d.mock.on){const left=d.mock.fail-d.mock.t;$('mockt').textContent=left>0?`Simulated slide in ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`:'Simulated slope has failed'}}
  if(d.raw.fit){const F=[['soil_on','Soil sensors'],['rain_on','Rain board'],['water_on','Rain cup'],['sw_on','SW-420 shock']],h=F.map((f,i)=>`<button class="b${d.raw.fit[i]=='1'?'':' warn'}" onclick="fitToggle('${f[0]}',${d.raw.fit[i]=='1'?0:1})">${f[1]}: ${d.raw.fit[i]=='1'?'fitted':'not fitted'}</button>`).join('');if($('fitb').innerHTML!==h)$('fitb').innerHTML=h}
  drawAI(d);drawCam(d)}
+// ---------- road gates ----------
+function gatesRender(d){const g=d.gate;if(!g)return;const danger=d.ready&&d.state==2&&d.barrier,cm=v=>v>0?`${Math.round(v)} cm`:'no echo';
+ const G=[['Right · road side',g.r?(danger?'Vehicle at gate':'Something at the gate'):'Road clear',g.r_echo?`nearest ${cm(g.r_cm)} · alarm under ${g.r_lim} cm`:'Sensor not answering',g.r&&danger?'alert':''],
+ ['Left · inside the zone',g.l?(danger?'Person inside':'Something in front'):'Zone clear',g.l_echo?`nearest ${cm(g.l_cm)} · alarm under ${g.l_lim} cm`:'Sensor not answering',g.l&&danger?'go':''],
+ ['Gate A',g.a=='escape'?`Open for escape${g.esc_s&&!g.l?' · closes in '+g.esc_s+' s':''}`:g.a=='closed'?'Closed':'Open',g.a=='escape'?'Exit only':g.a=='closed'?'Road closed':'Traffic flowing',g.a=='escape'?'go':g.a=='closed'?'alert':''],
+ ['Gate B',g.b=='closed'?'Closed':'Open',g.b=='closed'?'Road closed':'Traffic flowing',g.b=='closed'?'alert':'']];
+ $('gates').innerHTML=G.map(x=>`<div class="gs ${x[3]}"><div class=n>${x[0]}</div><div class=v>${x[1]}</div><div class=x>${x[2]}</div></div>`).join('');
+ let t;if(!danger)t=g.reopened?`All clear: road reopened ${mm(g.reopened)} ago`:'Road open: gates follow the traffic light';
+ else if(g.a=='escape')t=g.l?'Escape in progress: gate A is open, someone is leaving the zone':`Escape: gate A closes in ${g.esc_s} s`;
+ else if(g.hold)t='DANGER: vehicle at the road gate, gates locked and it is told to turn back';
+ else t='DANGER: both gates locked';
+ if(danger&&(g.escapes||g.turned))t+=` · ${g.escapes} escaped, ${g.turned} turned back`;
+ $('gline').textContent=t;$('gline').style.color=danger?'var(--danger)':'';$('gatesub').textContent=danger?'Danger: watching for people and vehicles':'Ultrasonic watch at both ends'}
+// ---------- slope tilt ----------
+function tiltRender(d){const t=d.tilt;if(!t)return;const mpu=d.dev.mpu;
+ $('tdeg').innerHTML=mpu?`${t.deg.toFixed(1)}<small>°</small>`:'-';
+ $('tfrom').textContent=t.locked?'from the locked slope position':'from the position at session start (not locked)';
+ const r=Math.abs(t.rate);const st=!mpu?['Tilt sensor not found','var(--danger)']:!d.ready?['Warming up','var(--mute)']:r>2?['Moving fast',
+  'var(--danger)']:r>0.3||t.deg>2?['Creeping','var(--watch)']:['Steady','var(--safe)'];
+ $('tstat').textContent=st[0]+(d.ready&&mpu?` · ${t.rate.toFixed(2)}°/min`:'');$('tstat').style.color=st[1];
+ $('trp').textContent=mpu?`Roll ${t.roll.toFixed(1)}° · Pitch ${t.pitch.toFixed(1)}° · AI sees ${d.ready?t.chg.toFixed(2)+'°':'-'}`:'';
+ // bubble: the tilt away from the zero, scaled so the dashed ring is 5 degrees
+ const k=40/5,mag=Math.min(t.deg*k,50),ang=Math.atan2(t.roll-(t.rr||0),-(t.pitch-(t.rp||0))),b=$('bub');
+ b.setAttribute('cx',(mag*Math.cos(ang)).toFixed(1));b.setAttribute('cy',(mag*Math.sin(ang)).toFixed(1));b.setAttribute('fill',t.deg>5?css('--danger'):t.deg>2?css('--watch'):css('--accent'));
+ $('tiltsub').textContent=t.locked?'Locked position = 0°':'Not locked yet';$('tlock').lastChild.textContent=t.locked?'Lock again here':'Lock this position';$('tunlock').style.display=t.locked?'':'none'}
+function tiltLock(){if(confirm('Lock the current slope position as 0°? The AI restarts its 60 s warm-up.'))cmd('L')}
+function tiltUnlock(){if(confirm('Unlock the tilt? Tilt is then measured from each session start again.'))cmd('u')}
 // ---------- system health ----------
 function healthRender(d){const n=d.net,rows=[
  ['Tilt / vibration sensor (MPU-6050)',d.dev.mpu?'ok':'bad',d.dev.mpu?'Reading':'Not found: check wiring'+(d.dev.i2c?` · wires answer: ${esc(d.dev.i2c)}`:'')],
  ['OLED display',d.dev.oled?'ok':'warn',d.dev.oled?'Working':'Not found'],
  ['Camera link',d.dev.cam_seen?'ok':'bad',d.dev.cam_seen?`${d.dev.cam_ip}`:'Not heard for 10 s'],
  ['Camera motion score',d.dev.cam_motion?'ok':'warn',d.dev.cam_motion?(d.cam_light?'Paused (light change)':'Feeding the AI'):'Not arriving (AI uses neutral 3)'],
- ['Ultrasonic',!d.raw.us_on?'warn':d.raw.us_lost?'bad':'ok',!d.raw.us_on?'Switched off':d.raw.us_lost?'Target lost':`${d.raw.echo}/10 echoes`],
+ ['Gate sensors (right / left)',d.gate?(d.gate.r_echo&&d.gate.l_echo?'ok':'warn'):'warn',d.gate?`right ${d.gate.r_echo?'ok':'no echo'} · left ${d.gate.l_echo?'ok':'no echo'}`:'-'],
  ['Wi-Fi',n.home?'ok':'warn',n.home?`${esc(n.ssid.trim())} · ${n.rssi} dBm`:'Own network only'],
  ['AI engine',d.ready?'ok':'warn',d.ready?`${d.infer_us} µs per check`:'Warming up'],
  ['Buzzer',d.muted?'warn':'ok',d.muted?'Muted':'Armed']];
