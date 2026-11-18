@@ -126,6 +126,9 @@ button.b.warn{color:var(--danger)}
 input{width:100%;background:var(--s2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px;min-height:44px;outline:none}
 input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(76,154,255,.22)}
 label{font-size:12px;font-weight:600;color:var(--ink2);display:block;margin:12px 0 5px}
+select{width:100%;background:var(--s2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px;min-height:44px;outline:none}
+.sosin{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:8px}.sosin+.btns{margin-top:8px}
+body.cloudmode .edonly{display:none}
 .pw{position:relative}.pw input{padding-right:84px}.pw button{position:absolute;right:6px;top:6px;bottom:6px;border:0;background:var(--s3);color:var(--ink2);border-radius:7px;font:inherit;font-size:12px;font-weight:600;padding:0 10px;cursor:pointer}
 .nets{display:grid;gap:6px;margin-top:10px}.nets button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;min-height:46px;text-align:left;cursor:pointer}
 .nets button:hover{border-color:var(--accent)}
@@ -221,7 +224,7 @@ window.fetch=async function(u,o){
  if(path==='/notes'){await wait(()=>notes,8000);const since=+q.get('b')===notes.b?+q.get('since'):0;
   return json({b:notes.b,up:notes.up,notes:notes.notes.filter(n=>n.id>since)})}
  if(path==='/cmd'){if(!client||!client.connected||!id)throw new Error('not connected');client.publish(base()+'cmd',url.search.slice(1));return new Response('ok')}
- if(path==='/wifi'||path==='/wifiscan'||path==='/cloud'){throw new Error('Change Wi-Fi from the local dashboard')}
+ if(path==='/wifi'||path==='/wifiscan'||path==='/cloud'||path==='/contacts'||path==='/simtest'||path==='/gateway'){throw new Error('Change settings from the local dashboard')}
  return realFetch(u,o)};
 window.cloudSetup=function(){const b=document.getElementById('csetup');b.classList.add('show');
  if(cfg&&!cfg.pub){document.getElementById('c_h').value=cfg.host||'';document.getElementById('c_u').value=cfg.user||'';document.getElementById('c_p').value=cfg.pass||''}};
@@ -347,6 +350,24 @@ document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('c
 <div class="btns" style="margin-top:14px"><button class="b pri" id="tlock" onclick="tiltLock()"><svg class="i"><use href="#i-lock"/></svg>Lock this position</button><button class="b" id="tunlock" onclick="tiltUnlock()">Unlock</button></div>
 <div class="note">Set up the slope, then press Lock: that position becomes 0°. Any later tilt away from it goes to the AI, also after a restart. Inner ring 2°, dashed ring 5°.</div></div></section>
 
+<section class="card pg t0" id="s-sos">
+<div class="ch"><svg class="i"><use href="#i-bell"/></svg><h2>Rapid response<small>Who SlopeSense alerts on DANGER (SMS and calls)</small></h2></div>
+<div class="cb"><div class="gline" id="sosline">-</div><div class="rows" id="sosrows"></div>
+<details class="edonly" id="sosbox" ontoggle="if(this.open)sosLoad()"><summary><svg class="i"><use href="#i-gear"/></svg>Edit numbers and location</summary><div>
+<label for="sloc">Site location (goes into every alert)</label><input id="sloc" maxlength="60" placeholder="e.g. Kavalappara, Malappuram, NH 766 km 12">
+<div id="sosed"></div>
+<div class="eyebrow" style="margin-top:16px">Send SMS through an Android phone (free)</div>
+<div class="muted small">Install a free SMS app on a phone with a SIM: <b>TextBee</b> (textbee.dev) or <b>SMS Gateway for Android</b>. The phone then sends a real SMS from its own SIM for every alert. TextBee: sign up at textbee.dev, scan its QR with the app, then copy the <b>Device ID</b> and <b>API key</b> here.</div>
+<label for="gwm">How the board reaches the phone</label><select id="gwm" onchange="gwMode()"><option value="3">TextBee app (textbee.dev)</option><option value="1">SMS Gateway app: cloud server</option><option value="2">SMS Gateway app: same Wi-Fi</option><option value="0">Off (use the SIM module)</option></select>
+<div id="gwbw"><label for="gwb">Phone's local address (shown in the app)</label><input id="gwb" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="192.168.x.x:8080"></div>
+<label for="gwu" id="gwul">App username</label><input id="gwu" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="47">
+<label for="gwp" id="gwpl">App password</label><div class="pw"><input id="gwp" type="password" autocomplete="off" maxlength="99" placeholder="leave empty to keep the saved one"><button type="button" onclick="const e=$('gwp');e.type=e.type=='password'?'text':'password'">Show</button></div>
+<div class="btns" style="margin-top:12px"><button class="b" onclick="gwSave()">Save phone gateway</button></div>
+<div class="note">Saving a new number sends a confirmation SMS to it straight away, so you know the number is right. Try your own number first before entering real station numbers. Numbers stay on the board: the cloud page shows only the last 3 digits.</div>
+<div class="btns" style="margin-top:12px"><button class="b pri" onclick="sosSave()">Save contacts</button></div>
+</div></details>
+<div class="note">On DANGER every saved contact gets an SMS with the location and the cause, then a call one by one (an unanswered call is tried once more). When the slope is safe again, everyone who was alerted gets ALL CLEAR.</div></div></section>
+
 <section class="card pg t0 phonly" id="s-phone"><div class="cb" style="display:flex;gap:12px;align-items:center"><svg class="i" style="width:22px;height:22px;color:var(--accent)"><use href="#i-bell"/></svg>
 <div style="flex:1;min-width:0"><b style="font-size:14px">Phone alarm</b><div class="small muted" id="paltxt">Vibrate and sound on this phone when the slope is in danger</div></div><button class="b pri" id="palb" onclick="armAlarm()">Turn on</button></div></section>
 <section class="card pg t0" id="s-log">
@@ -388,7 +409,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('c
 <div class="note" id="nsysnote"></div>
 </div></details>
 <details open><summary><svg class="i"><use href="#i-gear"/></svg>Controls</summary><div>
-<div class="btns"><button class="b" id="bm" onclick="cmd('m')"><svg class="i"><use href="#i-bell"/></svg><span>Mute buzzer</span></button><button class="b" onclick="if(confirm('Restart the session? The AI warms up again for 60 s.'))cmd('z')"><svg class="i"><use href="#i-redo"/></svg>Restart session</button></div>
+<div class="btns"><button class="b" id="bm" onclick="cmd('m')"><svg class="i"><use href="#i-bell"/></svg><span>Mute buzzer</span></button><button class="b" onclick="if(confirm('Restart the session? The AI warms up again for 60 s.'))cmd('z')"><svg class="i"><use href="#i-redo"/></svg>Restart session</button><button class="b warn" onclick="if(confirm('Run a DANGER drill? For 60 s the road closes, the alarm sounds and every rapid-response contact gets a real SMS marked DRILL.'))cmd('D')"><svg class="i"><use href="#i-warn"/></svg>Danger drill</button></div>
 <div class="eyebrow" style="margin-top:14px">Sensors fitted</div><div class="btns" id="fitb"></div>
 <div class="note">Switch a sensor to "not fitted" while it is not wired: its empty pin reads random noise, which the AI would take as wet soil or rain. Not fitted = the AI gets a steady normal value.</div>
 <div class="note">Both ultrasonics now watch the road gates (see Road gates), so the AI gets a neutral value for slope distance.<br>Restart after moving sensors: the first 30 s set the zero for tilt (unless it is locked) and the rain cup.</div>
@@ -415,7 +436,7 @@ try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.
 function theme(){const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme=='dark':!matchMedia('(prefers-color-scheme: light)').matches;r.dataset.theme=dark?'light':'dark';
  try{localStorage.setItem('theme',r.dataset.theme)}catch(e){}if(last)render(last)}
 function toast(t){const e=$('toast');e.textContent=t;e.className='show';clearTimeout(e._t);e._t=setTimeout(()=>e.className='',2600)}
-function cmd(c){fetch('/cmd?c='+c).then(()=>toast({t:'Input test started',s:'Step skipped',y:'Confirmed',x:'Test stopped',m:'Buzzer toggled',z:'Session restarted',n:'Test sent: it arrives within a second',L:'Tilt locked: this position is now 0°',u:'Tilt unlocked'}[c]||'OK')).catch(()=>toast('SlopeSense not reachable'))}
+function cmd(c){fetch('/cmd?c='+c).then(()=>toast({t:'Input test started',s:'Step skipped',y:'Confirmed',x:'Test stopped',m:'Buzzer toggled',z:'Session restarted',n:'Test sent: it arrives within a second',L:'Tilt locked: this position is now 0°',u:'Tilt unlocked',D:'Danger drill started: SMS go out now'}[c]||'OK')).catch(()=>toast('SlopeSense not reachable'))}
 const f1=v=>Math.abs(v)>=100?v.toFixed(0):Math.abs(v)>=10?v.toFixed(1):v.toFixed(2);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ic=n=>`<svg class="i"><use href="#${n}"/></svg>`;
@@ -458,11 +479,37 @@ function render(d){const fresh=d!==last;last=d;const C=COL();
   const h=t[3].some(k=>hot(d,k));$('t'+i).className='tile'+(h?' hot':'');
   const H=hist[i];if(fresh&&v!=null)H.push(+v);if(H.length>120)H.shift();spark($('sp'+i),H,h?C[1]:css('--accent'))});
  $('sensage').textContent=`Session ${(d.t/60).toFixed(1)} min · ${d.windows} AI checks`;$('aiinfo').textContent=`On-device model · ${d.infer_us} µs per check · every 5 s`;
- gatesRender(d);tiltRender(d);camRender(d);testRender(d.test);netRender(d);cloudRender(d);healthRender(d);headRender(d);if(fresh){alarmCheck(d);notesCheck(d)}
+ gatesRender(d);sosRender(d);tiltRender(d);camRender(d);testRender(d.test);netRender(d);cloudRender(d);healthRender(d);headRender(d);if(fresh){alarmCheck(d);notesCheck(d)}
  $('bm').querySelector('span').textContent=d.muted?'Unmute buzzer':'Mute buzzer';
  if(d.raw.fit){const F=[['soil_on','Soil sensors'],['rain_on','Rain board'],['water_on','Rain cup'],['sw_on','SW-420 shock']],h=F.map((f,i)=>`<button class="b${d.raw.fit[i]=='1'?'':' warn'}" onclick="fitToggle('${f[0]}',${d.raw.fit[i]=='1'?0:1})">${f[1]}: ${d.raw.fit[i]=='1'?'fitted':'not fitted'}</button>`).join('');if($('fitb').innerHTML!==h)$('fitb').innerHTML=h}
  drawAI(d);drawCam(d)}
 // ---------- road gates ----------
+// ---------- rapid response (fire, police, hospital, site in-charge) ----------
+const SOSN=['Fire station','Police station','Hospital','Site in-charge (you)'],SOSM={0:'off',1:'SMS',2:'call',3:'SMS + call'};
+const agoTxt=s=>s<60?`${s} s ago`:s<3600?`${Math.round(s/60)} min ago`:`${Math.round(s/3600)} h ago`;
+function sosRender(d){const s=d.sim;if(!s){$('sosline').textContent='This firmware has no SIM module support';return}
+ const g=s.gw;if(g&&g.on){$('sosline').textContent=`SMS through the Android phone (${g.mode==3?'TextBee':g.mode==1?'SMS Gateway cloud':'same Wi-Fi'}) · ${g.st}`+(g.sent?` · ${g.sent} sent`:'')+(g.fail?` · ${g.fail} failed`:'')+(s.ok&&s.reg?' · calls by SIM module':' · calls need the SIM module')+(s.loc?'':' · set the site location')}
+ else $('sosline').textContent=!s.ok?'SIM module not answering: check its wiring and power':s.card!='ready'&&s.card!='?'?`SIM card ${s.card}: check the card`:!s.reg?'Searching for the mobile network…':
+  `${s.op||'Network'} · signal ${s.csq}/31`+(s.busy?' · calling now':s.q?` · sending ${s.q}`:' · ready')+(s.loc?'':' · set the site location');
+ $('sosrows').innerHTML=SOSN.map((n,i)=>{const c=s.c[i]||{};const dot=!c.set||!c.m?'warn':/fail|not /.test(c.r)?'bad':'ok';
+  const t=!c.set?'No number saved':`•••${esc(c.t)} · ${SOSM[c.m]}`+(c.r?` · ${esc(c.r)}${c.ago>=0&&c.ago<1e8?' '+agoTxt(c.ago):''}`:'');
+  return `<div class=row><span class="dot ${dot}"></span><span>${n}</span><span class="small muted" style="text-align:right">${t}</span></div>`}).join('')}
+function sosForm(){if($('n0'))return;$('sosed').innerHTML=SOSN.map((n,i)=>`<label for="n${i}">${n}</label><div class="sosin"><input id="n${i}" type="tel" inputmode="tel" maxlength="16" placeholder="+91XXXXXXXXXX" autocomplete="off">
+ <select id="m${i}" aria-label="${n}: how to alert"><option value="3">SMS + call</option><option value="1">SMS only</option><option value="2">Call only</option><option value="0">Off</option></select></div>
+ <div class="btns"><button class="b" onclick="sosTest(${i},'sms')">Test SMS</button><button class="b" onclick="sosTest(${i},'call')">Test call</button></div>`).join('')}
+async function sosLoad(){sosForm();try{const c=await (await fetch('/contacts')).json();$('sloc').value=c.loc||'';c.c.forEach((x,i)=>{$('n'+i).value=x.num;$('m'+i).value=x.m})}catch(e){toast('Contacts can only be edited on the local dashboard')}
+ try{const g=await (await fetch('/gateway')).json();$('gwm').value=g.mode||3;$('gwu').value=g.user||'';$('gwb').value=g.mode==2?g.base.replace(/^https?:\/\//,''):'';$('gwp').placeholder=g.pass?'saved: leave empty to keep it':'password from the app';gwMode()}catch(e){}}
+function gwMode(){const m=$('gwm').value;$('gwbw').style.display=m=='2'?'':'none';$('gwul').textContent=m=='3'?'TextBee Device ID':'App username';$('gwpl').textContent=m=='3'?'TextBee API key':'App password'}
+async function gwSave(){const m=$('gwm').value,b=$('gwb').value.trim(),u=$('gwu').value.trim(),p=$('gwp').value;
+ if(m=='2'&&!b)return toast("Enter the phone's local address from the app");if(m!='0'&&!u)return toast(m=='3'?'Enter the TextBee Device ID':'Enter the username from the app');
+ try{const r=await fetch('/gateway',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`mode=${m}&base=${encodeURIComponent(b)}&user=${encodeURIComponent(u)}&pass=${encodeURIComponent(p)}`});
+  toast(r.ok?(m=='0'?'Phone gateway off':'Saved. Press Test SMS on a contact to try it'):'Not saved: '+await r.text());$('gwp').value=''}catch(e){toast('SlopeSense not reachable')}}
+async function sosSave(){let b='loc='+encodeURIComponent($('sloc').value.trim());
+ for(let i=0;i<4;i++){const v=$('n'+i).value.replace(/[\s-]/g,'');if(v&&!/^\+?\d{10,15}$/.test(v))return toast(`${SOSN[i]}: number must look like +91XXXXXXXXXX`);b+=`&n${i}=${encodeURIComponent(v)}&m${i}=${$('m'+i).value}`}
+ try{const r=await fetch('/contacts',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+  toast(r.ok?'Saved. New numbers get a confirmation SMS now':'Not saved: '+await r.text())}catch(e){toast('SlopeSense not reachable')}}
+async function sosTest(i,w){if(!confirm(`Send a test ${w=='call'?'call':'SMS'} to the ${SOSN[i]} number now?`+(i<3?' If it is a real station number, tell them first.':'')))return;
+ try{const r=await fetch('/simtest',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`i=${i}&w=${w}`});toast(r.ok?'Test queued: watch the line under that contact':await r.text())}catch(e){toast('SlopeSense not reachable')}}
 function gatesRender(d){const g=d.gate;if(!g)return;const danger=d.ready&&d.state==2&&d.barrier,cm=v=>v>0?`${Math.round(v)} cm`:'no echo';
  const G=[['Right · road side',g.r?(danger?'Vehicle at gate':'Something at the gate'):'Road clear',g.r_echo?(g.r_base>0?`now ${cm(g.r_cm)} · empty road ${g.r_base} cm · alarm under ${g.r_lim} cm`:`now ${cm(g.r_cm)} · learning the empty road…`):'Sensor not answering',g.r&&danger?'alert':''],
  ['Left · inside the zone',g.l?(danger?'Person inside':'Something in front'):'Zone clear',g.l_echo?`nearest ${cm(g.l_cm)} · alarm under ${g.l_lim} cm`:'Sensor not answering',g.l&&danger?'go':''],
@@ -496,6 +543,8 @@ function healthRender(d){const n=d.net,rows=[
  ['Camera link',d.dev.cam_seen?'ok':'bad',d.dev.cam_seen?`${d.dev.cam_ip}`:'Not heard for 10 s'],
  ['Camera motion score',d.dev.cam_motion?'ok':'warn',d.dev.cam_motion?(d.cam_light?'Paused (light change)':'Feeding the AI'):'Not arriving (AI uses neutral 3)'],
  ['Gate sensors (right / left)',d.gate?(d.gate.r_echo&&d.gate.l_echo?'ok':'warn'):'warn',d.gate?`right ${d.gate.r_echo?'ok':'no echo'} · left ${d.gate.l_echo?'ok':'no echo'}`:'-'],
+ ['SIM module A7670C (SMS / calls)',d.sim?(d.sim.ok&&d.sim.reg?'ok':d.sim.ok?'warn':'bad'):'warn',d.sim?(!d.sim.ok?'Not answering: check wiring and power':d.sim.card!='ready'&&d.sim.card!='?'?`SIM card ${esc(d.sim.card)}`:!d.sim.reg?'Searching for the network':`${esc(d.sim.op)} · signal ${d.sim.csq}/31 · ${d.sim.c.filter(c=>c.set).length} of 4 contacts`):'-'],
+ ['Firmware',d.fw?(d.fw.trial?'warn':'ok'):'warn',d.fw?`${esc(d.fw.build)} · ${esc(d.fw.st)}`:'-'],
  ['Wi-Fi',n.home?'ok':'warn',n.home?`${esc(n.ssid.trim())} · ${n.rssi} dBm`:'Own network only'],
  ['AI engine',d.ready?'ok':'warn',d.ready?`${d.infer_us} µs per check`:'Warming up'],
  ['Buzzer',d.muted?'warn':'ok',d.muted?'Muted':'Armed']];
