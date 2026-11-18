@@ -128,7 +128,7 @@ input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(76,154,255,.22)
 label{font-size:12px;font-weight:600;color:var(--ink2);display:block;margin:12px 0 5px}
 select{width:100%;background:var(--s2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px;min-height:44px;outline:none}
 .sosin{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:8px}.sosin+.btns{margin-top:8px}
-body.cloudmode .edonly{display:none}
+body.cloudmode .edonly{display:none}.cloudonly{display:none}body.cloudmode .cloudonly{display:block}
 .pw{position:relative}.pw input{padding-right:84px}.pw button{position:absolute;right:6px;top:6px;bottom:6px;border:0;background:var(--s3);color:var(--ink2);border-radius:7px;font:inherit;font-size:12px;font-weight:600;padding:0 10px;cursor:pointer}
 .nets{display:grid;gap:6px;margin-top:10px}.nets button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;min-height:46px;text-align:left;cursor:pointer}
 .nets button:hover{border-color:var(--accent)}
@@ -206,6 +206,7 @@ function connect(){
  client.on('message',(t,m)=>{const p=t.split('/');if(p[0]!=='slopesense'||p.length<3)return;
   if(!id){id=p[1];client.unsubscribe('slopesense/+/#');client.subscribe(base()+'#');hello()}
   if(p[1]!==id)return;const k=p[2];if(k==='cam'){window.cloudCamFrame&&cloudCamFrame(m);return}const s=m.toString();
+  if(k==='admin_result'){window.toast&&toast(s==='ok'?'Numbers updated on SlopeSense. New numbers get a confirmation SMS.':'Not changed: '+s.replace(/^error: /,''));return}
   try{if(k==='api'){api=JSON.parse(s);apiAt=Date.now()}else if(k==='notes')notes=JSON.parse(s);else if(k==='meta')meta=JSON.parse(s);else if(k==='status')online=s==='online'}catch(e){}
   wake()});}
 function hello(){if(client&&client.connected&&id)client.publish(base()+'hello','1')}
@@ -226,6 +227,11 @@ window.fetch=async function(u,o){
  if(path==='/cmd'){if(!client||!client.connected||!id)throw new Error('not connected');client.publish(base()+'cmd',url.search.slice(1));return new Response('ok')}
  if(path==='/wifi'||path==='/wifiscan'||path==='/cloud'||path==='/contacts'||path==='/simtest'||path==='/gateway'){throw new Error('Change settings from the local dashboard')}
  return realFetch(u,o)};
+// number changes from the cloud page (sent as plain text, no password, as chosen by the owner)
+window.cloudAdminSave=async function(plain){
+ if(!client||!client.connected||!id)throw new Error('not connected yet');
+ client.publish(base()+'admin',plain);
+};
 window.cloudSetup=function(){const b=document.getElementById('csetup');b.classList.add('show');
  if(cfg&&!cfg.pub){document.getElementById('c_h').value=cfg.host||'';document.getElementById('c_u').value=cfg.user||'';document.getElementById('c_p').value=cfg.pass||''}};
 window.cloudSave=function(){const h=document.getElementById('c_h').value.trim(),u=document.getElementById('c_u').value.trim(),p=document.getElementById('c_p').value;
@@ -366,6 +372,11 @@ document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('c
 <div class="note">Saving a new number sends a confirmation SMS to it straight away, so you know the number is right. Try your own number first before entering real station numbers. Numbers stay on the board: the cloud page shows only the last 3 digits.</div>
 <div class="btns" style="margin-top:12px"><button class="b pri" onclick="sosSave()">Save contacts</button></div>
 </div></details>
+<details class="cloudonly" id="cbox"><summary><svg class="i"><use href="#i-gear"/></svg>Change numbers</summary><div>
+<div class="muted small">Type only the numbers you want to change. Leave a box empty to keep it, or type <b>-</b> to remove it.</div>
+<div id="cnums"></div>
+<div class="btns" style="margin-top:12px"><button class="b pri" onclick="cSave()">Update numbers</button></div>
+</div></details>
 <div class="note">On DANGER every saved contact gets an SMS with the location and the cause, then a call one by one (an unanswered call is tried once more). When the slope is safe again, everyone who was alerted gets ALL CLEAR.</div></div></section>
 
 <section class="card pg t0 phonly" id="s-phone"><div class="cb" style="display:flex;gap:12px;align-items:center"><svg class="i" style="width:22px;height:22px;color:var(--accent)"><use href="#i-bell"/></svg>
@@ -488,12 +499,20 @@ function render(d){const fresh=d!==last;last=d;const C=COL();
 const SOSN=['Fire station','Police station','Hospital','Site in-charge (you)'],SOSM={0:'off',1:'SMS',2:'call',3:'SMS + call'};
 const agoTxt=s=>s<60?`${s} s ago`:s<3600?`${Math.round(s/60)} min ago`:`${Math.round(s/3600)} h ago`;
 function sosRender(d){const s=d.sim;if(!s){$('sosline').textContent='This firmware has no SIM module support';return}
+ if(document.body.classList.contains('cloudmode'))cForm(s);
  const g=s.gw;if(g&&g.on){$('sosline').textContent=`SMS through the Android phone (${g.mode==3?'TextBee':g.mode==1?'SMS Gateway cloud':'same Wi-Fi'}) · ${g.st}`+(g.sent?` · ${g.sent} sent`:'')+(g.fail?` · ${g.fail} failed`:'')+(s.ok&&s.reg?' · calls by SIM module':' · calls need the SIM module')+(s.loc?'':' · set the site location')}
  else $('sosline').textContent=!s.ok?'SIM module not answering: check its wiring and power':s.card!='ready'&&s.card!='?'?`SIM card ${s.card}: check the card`:!s.reg?'Searching for the mobile network…':
   `${s.op||'Network'} · signal ${s.csq}/31`+(s.busy?' · calling now':s.q?` · sending ${s.q}`:' · ready')+(s.loc?'':' · set the site location');
  $('sosrows').innerHTML=SOSN.map((n,i)=>{const c=s.c[i]||{};const dot=!c.set||!c.m?'warn':/fail|not /.test(c.r)?'bad':'ok';
   const t=!c.set?'No number saved':`•••${esc(c.t)} · ${SOSM[c.m]}`+(c.r?` · ${esc(c.r)}${c.ago>=0&&c.ago<1e8?' '+agoTxt(c.ago):''}`:'');
   return `<div class=row><span class="dot ${dot}"></span><span>${n}</span><span class="small muted" style="text-align:right">${t}</span></div>`}).join('')}
+function cForm(s){if(!$('cnums'))return;if(!$('cn0'))$('cnums').innerHTML=SOSN.map((n,i)=>`<label for="cn${i}">${n}</label><input id="cn${i}" type="tel" inputmode="tel" maxlength="16" autocomplete="off">`).join('');
+ s.c.forEach((c,i)=>{const e=$('cn'+i);if(e)e.placeholder=c.set?`now •••${c.t} · empty = keep`:'not set · +91XXXXXXXXXX'})}
+async function cSave(){let plain='ts='+Math.floor(Date.now()/1000),any=0;
+ for(let i=0;i<4;i++){const v=$('cn'+i).value.replace(/[\s-]/g,m=>m=='-'&&$('cn'+i).value.trim()=='-'?'-':'');if(!v)continue;
+  if(v!='-'&&!/^\+?\d{10,15}$/.test(v))return toast(`${SOSN[i]}: number must look like +91XXXXXXXXXX`);plain+=`&n${i}=${encodeURIComponent(v)}`;any=1}
+ if(!any)return toast('Type at least one new number'); if(!window.cloudAdminSave)return toast('Use the local dashboard here');
+ try{await cloudAdminSave(plain);toast('Sent. Waiting for SlopeSense to confirm…')}catch(e){toast('Not sent: '+e.message)}}
 function sosForm(){if($('n0'))return;$('sosed').innerHTML=SOSN.map((n,i)=>`<label for="n${i}">${n}</label><div class="sosin"><input id="n${i}" type="tel" inputmode="tel" maxlength="16" placeholder="+91XXXXXXXXXX" autocomplete="off">
  <select id="m${i}" aria-label="${n}: how to alert"><option value="3">SMS + call</option><option value="1">SMS only</option><option value="2">Call only</option><option value="0">Off</option></select></div>
  <div class="btns"><button class="b" onclick="sosTest(${i},'sms')">Test SMS</button><button class="b" onclick="sosTest(${i},'call')">Test call</button></div>`).join('')}
